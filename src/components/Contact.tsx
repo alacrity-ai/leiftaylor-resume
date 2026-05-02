@@ -35,6 +35,11 @@ export default function Contact({ onOpenContact, onOpenDownload }: Props) {
                 </button>
               </li>
               <li>
+                <a className="link" href={m.calendly} target="_blank" rel="noreferrer">
+                  Schedule 30 min on my calendar →
+                </a>
+              </li>
+              <li>
                 <a className="link" href={m.linkedin} target="_blank" rel="noreferrer">
                   LinkedIn — leiftaylor
                 </a>

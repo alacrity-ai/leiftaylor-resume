@@ -190,6 +190,7 @@ export const RESUME = {
     location: 'Greater Boston Area',
     email: 'leif@alacrity.ai',
     linkedin: 'https://www.linkedin.com/in/leiftaylor/',
+    calendly: 'https://calendly.com/alacrityai/30min',
     pdfHref: '/leif-taylor-resume-2026-05.pdf',
     docxHref: '/leif-taylor-resume-2026-05.docx',
     siteUrl: 'https://resume.lalalimited.com',

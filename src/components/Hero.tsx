@@ -48,6 +48,14 @@ export default function Hero({ onOpenContact, onOpenDownload }: Props) {
             <button type="button" className="btn btn-primary" onClick={onOpenContact}>
               Email Leif
             </button>
+            <a
+              className="btn"
+              href={m.calendly}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Schedule 30 min
+            </a>
             <button type="button" className="btn" onClick={onOpenDownload}>
               Download résumé
             </button>
