@@ -1,0 +1,80 @@
+.contact__head { position: relative; }
+
+.contact__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.75rem;
+}
+
+@media (min-width: 900px) {
+  .contact__grid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 3rem;
+    align-items: start;
+  }
+}
+
+.contact__heading {
+  font-weight: 500;
+  font-size: clamp(1.625rem, 0.6rem + 2.5vw, 2.625rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  font-variation-settings: "opsz" 36;
+  max-width: 18ch;
+}
+
+.contact__body {
+  margin-top: 1rem;
+  font-size: clamp(15px, 0.5rem + 0.7vw, 17px);
+  line-height: 1.6;
+  color: var(--ink-muted);
+  max-width: 50ch;
+}
+
+.contact__box {
+  position: relative;
+  padding: 1.5rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent);
+  border-radius: 4px;
+  box-shadow: var(--shadow-card);
+}
+
+.contact__box-kicker {
+  margin-bottom: 1rem;
+}
+
+.contact__links {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.contact__links a, .contact__send-btn {
+  font-size: 15.5px;
+  font-weight: 500;
+  color: var(--ink);
+  text-align: left;
+  line-height: 1.4;
+}
+
+.contact__send-btn {
+  font-family: var(--font-body);
+  cursor: pointer;
+  display: inline-block;
+}
+
+.contact__rule {
+  margin-block: 1rem 0.85rem;
+}
+
+.contact__github {
+  font-size: 11px;
+  line-height: 1.45;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  color: var(--ink-muted);
+}

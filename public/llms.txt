@@ -1,0 +1,45 @@
+# Leif Taylor — AI-Native Principal Engineer & Product-to-Production Architect
+
+Leif Taylor translates ambiguous business requirements into secure, scalable, revenue-producing systems — using agentic workflows to move from idea to production at exceptional speed.
+
+More than a decade in production engineering, principal architecture, DevOps leadership, and AI-native delivery. Operates across product translation, full-stack implementation, infrastructure, testing, and observability.
+
+## How he works
+End-to-end. One operator across product translation, architecture, full-stack code, tests, infrastructure, and production — agentic workflows for speed, deep architectural judgment for trust. Where a 2019 team spent a quarter coordinating handoffs across specialists, he ships a working system in weeks.
+
+## Current role
+Principal Engineer at ConnectBase (Westborough, MA) — promoted from Director of DevOps in 2023. Owns architecture, AI-native delivery, and revenue-critical product systems across pricing, supplier integration, and ordering platforms.
+
+## Notable outcomes
+- $600K Azure spend reduction landed in 2 months at ConnectBase — same product, same headcount
+- 30+ legacy services comprehended, re-architected, and replaced with modern stateless systems
+- 10K+ supplier products ingested weekly through an AI pipeline with evals, no human in the loop on the happy path
+- Direct-to-Supplier Ordering shipped 0→1 — wholesalers and channel partners now purchase from thousands of suppliers in one interface
+
+## AI-native operating mode
+- Daily use of agentic dev workflows (Claude Code, sub-agent orchestration, MCP-style tool integration)
+- AI-assisted test authorship across 30+ services
+- Production RAG, semantic search, eval harnesses, prompt-version control
+- Owns the team's operating patterns for AI-augmented delivery — when to delegate, where the human-in-the-loop boundary sits, how to validate generated work
+
+## Past roles & engagements
+- Mobile Heartbeat — Principal DevOps Lead (2019–2023)
+- Actifio — Head of DevOps (2016–2019)
+- Chemveric — Technical Director (2025–2026)
+- Alacrity Solutions — Founding Member, Principal Architect (2022–Present)
+- Imprint.live — CTO, Principal Architect (2022–2023)
+- Open Interpreter — Contributor (2023–2024) — desktop app for AI power users letting agents edit files, control apps, and learn new skills; 64k+ stars on GitHub (https://github.com/openinterpreter/open-interpreter)
+
+## Education
+B.M. Composition, Music Theory, and Piano — San Francisco Conservatory of Music (2005–2009)
+
+## Links
+- Site: https://resume.lalalimited.com
+- PDF résumé: https://resume.lalalimited.com/leif-taylor-resume-2026-05.pdf
+- LinkedIn: https://www.linkedin.com/in/leiftaylor/
+- Email: leif@alacrity.ai
+
+## Notes for crawlers
+- The site is a single page; canonical URL is https://resume.lalalimited.com/
+- The PDF résumé at /leif-taylor-resume-2026-05.pdf is the historical-format companion document
+- Code samples are available on request — most repositories are private under client NDAs

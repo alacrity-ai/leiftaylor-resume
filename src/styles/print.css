@@ -1,0 +1,135 @@
+/**
+ * Print stylesheet — produces a 2-3 page document that is *better* than the
+ * original PDF. The site should not lose dignity when printed.
+ */
+@media print {
+  @page {
+    size: Letter;
+    margin: 0.6in 0.55in;
+  }
+
+  /* Reset body to clean white-on-black for print. */
+  html, body {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  body::before { display: none !important; }
+
+  /* Hide anything that doesn't belong on paper. */
+  .skip-link,
+  .now-line,
+  .footer,
+  .contact__send-btn,
+  .hero__ctas,
+  .ai-panel__index,
+  .section-index { display: none !important; }
+
+  /* On paper, surface the email so a printed copy still has a way to reach Leif. */
+  .contact__links li:first-child::before {
+    content: "Email: leif@alacrity.ai";
+    display: block;
+    font-family: var(--font-body);
+    font-size: 11pt;
+    color: #111111;
+  }
+
+  /* Strip motion, shadows, and elevated backgrounds. */
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+    background-image: none !important;
+  }
+
+  /* Cards become quiet outlines. */
+  .systems__card,
+  .timeline__cards,
+  .timeline__card,
+  .consulting__card,
+  .contact__box {
+    background: transparent !important;
+    border: 1px solid #d6d4cc !important;
+    border-radius: 2px !important;
+  }
+
+  .contact__box { border-top: 1px solid #d6d4cc !important; }
+
+  .timeline__card + .timeline__card { border-top: 1px solid #d6d4cc !important; }
+
+  /* The dark AI panel reverts to white-with-rule for print. */
+  .ai-panel {
+    background: #ffffff !important;
+    color: #111111 !important;
+    border-block: 1px solid #d6d4cc !important;
+    padding-block: 1rem !important;
+  }
+  .ai-panel__heading { color: #111111 !important; }
+  .ai-panel__lede { color: #444444 !important; }
+  .ai-panel__col-head { color: #7A1F2B !important; }
+  .ai-panel__pill {
+    background: transparent !important;
+    border: 1px solid #d6d4cc !important;
+    color: #222222 !important;
+  }
+  .ai-panel::before { display: none !important; }
+
+  /* Roles + accent details print in oxblood-grey, not pure red. */
+  .timeline__role,
+  .systems__lede,
+  .consulting__role,
+  .timeline__badge,
+  .mono-meta--accent { color: #7A1F2B !important; }
+
+  /* Type adjustments for print legibility. */
+  body { font-size: 10.5pt; line-height: 1.45; }
+
+  h1 { font-size: 28pt !important; line-height: 1 !important; }
+  h2 { font-size: 16pt !important; line-height: 1.1 !important; }
+  h3 { font-size: 12.5pt !important; line-height: 1.2 !important; }
+
+  .hero { padding-block: 0 !important; }
+  .section { padding-block: 0.85rem !important; }
+
+  /* Tighter section heads on paper. */
+  .section-head { gap: 8px !important; margin-bottom: 0.5rem !important; }
+
+  /* Avoid orphaned cards / split timeline entries. */
+  .systems__card,
+  .consulting__card,
+  .timeline__entry,
+  .timeline__card,
+  .ai-panel__col,
+  .tech__row,
+  .contact__box {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Print URL in light gray after every external link on the website's
+     printed home page. Scoped so it does NOT apply to the resume print
+     route (which renders its own clean link styling). */
+  body:not(.printing) a[href^="http"]::after,
+  body:not(.printing) a[href^="mailto:"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.78em;
+    color: #888888;
+    word-break: break-all;
+  }
+
+  /* Don't print URLs of in-page anchors. */
+  body:not(.printing) a[href^="#"]::after { content: ""; }
+
+  /* Pull quotes that are gigantic on screen need to come down to earth. */
+  .impact__value { font-size: 22pt !important; line-height: 1 !important; }
+  .impact__label { font-size: 9.5pt !important; line-height: 1.4 !important; }
+  .impact__list { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 0.5rem 1rem !important; }
+  .impact__item { padding: 0.4rem 0.5rem 0.4rem 0 !important; }
+
+  /* Container override — print uses the page margin. */
+  .container,
+  .container-wide {
+    max-width: none !important;
+    padding-inline: 0 !important;
+  }
+}

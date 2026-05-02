@@ -1,0 +1,398 @@
+/**
+ * Print-only stylesheet for the /print/resume route.
+ *
+ * Margins are set via Puppeteer (preferCSSPageSize: true + page.pdf margin).
+ * @page only declares the size; the body of the document uses regular flow.
+ *
+ * The .printing class on body disables the website's paper texture and
+ * any home-page-specific defaults so the print page renders clean white.
+ */
+
+@page {
+  size: Letter;
+  margin: 0;
+}
+
+/* Disable the body grain texture and paper tint when printing. */
+body.printing {
+  background: #ffffff !important;
+  font-size: 10pt;
+  margin: 0;
+}
+
+body.printing::before {
+  display: none !important;
+}
+
+body.printing #root {
+  isolation: auto;
+}
+
+/* ─── Container ─────────────────────────────────────────── */
+
+.resume-print {
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: #ffffff;
+  font-size: 10pt;
+  line-height: 1.4;
+  max-width: 7.3in;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.resume-print *,
+.resume-print *::before,
+.resume-print *::after {
+  box-sizing: border-box;
+}
+
+.resume-print a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 0.5pt;
+  text-underline-offset: 1.5pt;
+}
+
+/* ─── Header ────────────────────────────────────────────── */
+
+.resume-print__header {
+  margin-bottom: 0.45rem;
+}
+
+.resume-print__name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 26pt;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  margin: 0;
+  font-variation-settings: "opsz" 96;
+}
+
+.resume-print__eyebrow {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 9.5pt;
+  font-weight: 600;
+  /* Minimal letter-spacing — ATS parsers can mis-read content with
+     extra spaces between letters as separate words. */
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.resume-print__contact {
+  margin: 0.4rem 0 0;
+  font-size: 10pt;
+  color: var(--ink-soft);
+}
+
+.resume-print__contact a {
+  color: var(--ink);
+}
+
+.resume-print__rule {
+  border: 0;
+  height: 1pt;
+  background: var(--accent);
+  width: 1.4in;
+  margin: 0.5rem 0 0;
+}
+
+/* ─── Thesis ────────────────────────────────────────────── */
+
+.resume-print__thesis {
+  margin: 0.5rem 0 0.3rem;
+  font-family: var(--font-display);
+  font-size: 12pt;
+  font-style: italic;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  font-variation-settings: "opsz" 24;
+  max-width: 7in;
+}
+
+/* ─── Sections ──────────────────────────────────────────── */
+
+.resume-print__section {
+  margin-top: 0.7rem;
+}
+
+.resume-print__section-head {
+  font-family: var(--font-mono);
+  font-size: 10.5pt;
+  font-weight: 600;
+  /* Minimal letter-spacing for ATS-readability. The visual separation
+     between section heads comes from font-size + accent color + rule. */
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.18rem;
+  border-bottom: 0.5pt solid var(--rule);
+}
+
+.resume-print__paragraph {
+  margin: 0;
+  font-size: 10pt;
+  line-height: 1.45;
+  color: var(--ink);
+  max-width: 7in;
+}
+
+/* ─── Outcomes ──────────────────────────────────────────── */
+
+.resume-print__outcomes {
+  margin: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.resume-print__outcome-row {
+  display: grid;
+  grid-template-columns: 1.4in 1fr;
+  gap: 0.3in;
+  align-items: baseline;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.resume-print__outcome-anchor {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 11pt;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0;
+  font-variation-settings: "opsz" 36;
+}
+
+.resume-print__outcome-body {
+  margin: 0;
+  font-size: 9.5pt;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+/* ─── Roles ─────────────────────────────────────────────── */
+
+.resume-print__role {
+  margin-top: 0.6rem;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.resume-print__role-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+
+.resume-print__company {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 11.5pt;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0;
+  font-variation-settings: "opsz" 36;
+}
+
+.resume-print__dates {
+  font-family: var(--font-mono);
+  font-size: 9pt;
+  font-weight: 500;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.resume-print__sub-role {
+  margin-top: 0.35rem;
+}
+
+.resume-print__role-title {
+  font-family: var(--font-mono);
+  font-size: 10pt;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 0.2rem;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.resume-print__role-note {
+  font-family: var(--font-mono);
+  font-size: 8pt;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--ink-faint);
+}
+
+.resume-print__role-dates {
+  font-family: var(--font-mono);
+  font-size: 8.5pt;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--ink-faint);
+}
+
+.resume-print__badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 0.5pt solid var(--accent);
+  padding: 1pt 5pt;
+  border-radius: 999px;
+  background: rgba(122, 31, 43, 0.05);
+}
+
+.resume-print__connector {
+  font-family: var(--font-mono);
+  font-size: 8.5pt;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  margin: 0.5rem 0 0.3rem;
+}
+
+/* ─── Bullets ───────────────────────────────────────────── */
+
+.resume-print__bullets {
+  margin: 0.15rem 0 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.resume-print__bullets li {
+  position: relative;
+  padding-left: 12pt;
+  font-size: 9.5pt;
+  line-height: 1.4;
+  color: var(--ink);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.resume-print__bullets li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 5pt;
+  height: 0.75pt;
+  background: var(--accent);
+}
+
+/* ─── Consulting ────────────────────────────────────────── */
+
+.resume-print__consulting {
+  margin-top: 0.45rem;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.resume-print__consulting-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.1rem;
+}
+
+.resume-print__consulting-name {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 10pt;
+  color: var(--ink);
+}
+
+.resume-print__consulting-body {
+  margin: 0.08rem 0 0;
+  font-size: 9.5pt;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  max-width: 7in;
+}
+
+.resume-print__inline-link {
+  font-family: var(--font-mono);
+  font-size: 9.5pt;
+  white-space: nowrap;
+}
+
+/* ─── Toolkit ───────────────────────────────────────────── */
+
+.resume-print__toolkit {
+  margin: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+/* Single-column dt-over-dd layout (NOT side-by-side and NOT multi-column).
+   Each row stays together as a unit so a label is never orphaned at the
+   bottom of a page with its content stranded on the next. */
+.resume-print__toolkit-row {
+  display: block;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.resume-print__toolkit-row dt {
+  font-family: var(--font-mono);
+  font-size: 9.5pt;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 0.18rem;
+  line-height: 1.3;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.resume-print__toolkit-row dd {
+  margin: 0;
+  font-size: 9.5pt;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+/* ─── Education ─────────────────────────────────────────── */
+
+.resume-print__education {
+  margin: 0;
+  font-size: 10pt;
+  color: var(--ink);
+}
+
+.resume-print__education strong {
+  font-weight: 600;
+}
+
+/* ─── Page-break tuning ─────────────────────────────────── */
+
+/* Prefer to keep the section head with at least the first child of the
+   section that follows. */
+.resume-print__section-head {
+  break-after: avoid;
+  page-break-after: avoid;
+}

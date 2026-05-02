@@ -1,0 +1,72 @@
+{
+  "name": "leif-taylor-resume",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Living résumé site, PDF, and DOCX for Leif Taylor — generated from a single TypeScript source. Deployed to Cloudflare Pages.",
+  "homepage": "https://resume.lalalimited.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alacrity-ai/leiftaylor-resume.git"
+  },
+  "bugs": {
+    "url": "https://github.com/alacrity-ai/leiftaylor-resume/issues"
+  },
+  "author": "Leif Taylor <leif@alacrity.ai> (https://www.linkedin.com/in/leiftaylor/)",
+  "license": "MIT",
+  "keywords": [
+    "resume",
+    "cv",
+    "personal-website",
+    "react",
+    "vite",
+    "typescript",
+    "cloudflare-pages",
+    "puppeteer",
+    "docx",
+    "ats-friendly",
+    "pdf-generation",
+    "agentic-workflows"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && tsx scripts/build-og-image.ts && vite build && TSX_TSCONFIG_PATH=tsconfig.app.json node --import tsx --import ./scripts/prerender-register.mjs prerender.ts && tsx scripts/build-sitemap.ts",
+    "build:fast": "tsx scripts/build-og-image.ts && vite build && TSX_TSCONFIG_PATH=tsconfig.app.json node --import tsx --import ./scripts/prerender-register.mjs prerender.ts && tsx scripts/build-sitemap.ts",
+    "resume-pdf": "npm run build && tsx scripts/generate-pdf.ts",
+    "resume-pdf:fast": "npm run build:fast && tsx scripts/generate-pdf.ts",
+    "resume-docx": "tsx scripts/generate-docx.ts",
+    "resumes": "npm run resume-pdf && npm run resume-docx",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@marsidev/react-turnstile": "^1.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.54.0",
+    "react-router-dom": "^7.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260501.1",
+    "@eslint/js": "^9.18.0",
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react-swc": "^3.7.0",
+    "docx": "^9.6.1",
+    "eslint": "^9.18.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.0",
+    "globals": "^15.14.0",
+    "puppeteer": "^24.42.0",
+    "sharp": "^0.33.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.21.0",
+    "vite": "^6.0.0"
+  }
+}

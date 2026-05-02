@@ -1,0 +1,44 @@
+.section-index {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.section-index__num {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.section-index__sep {
+  width: 28px;
+  height: 1px;
+  background: var(--accent);
+  display: inline-block;
+}
+
+.section-index__label {
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+/* On very wide screens the index floats into the left margin. We require
+   ≥1480px because below that the container's gutter is too narrow to fit
+   ~120px of mono text without overflowing the viewport edge. */
+@media (min-width: 1480px) {
+  .section-index {
+    position: absolute;
+    top: 4px;
+    left: -1.25rem;
+    transform: translateX(-100%);
+    margin-bottom: 0;
+    width: max-content;
+  }
+
+  .section-index__sep { width: 18px; }
+}
