@@ -11,6 +11,7 @@
  * JD: https://adobe.wd5.myworkdayjobs.com/en-US/external_experienced/job/Forward-Deployed-AI-Engineer_R158364
  * Proposal doc: docs/PROPOSED_ADOBE_RESUME.md (v3)
  */
+import { RESUME } from '../resume';
 import type { Variant } from '../types';
 
 export const adobe: Variant = {
@@ -97,6 +98,48 @@ export const adobe: Variant = {
         value: 'Multi-module IaC',
         label:
           'Built the Terraform / Kubernetes deployment substrate for Mobile Heartbeat’s modular cloud-native healthcare communication platform — repeatable provisioning, secrets, ingress, observability, and CI/CD across independently deployable clinical modules.',
+      },
+    ],
+
+    // Toolkit override: keep all 6 base buckets verbatim, insert
+    // `Generative AI / Image` right after `AI / LLM Systems`, and append
+    // `Forward-Deployed / Customer Engineering` at the end. The base
+    // buckets are spread from RESUME.tech so updates to the global
+    // toolkit propagate to the Adobe variant automatically — no
+    // duplication. The two variant-only buckets surface depth that the
+    // global résumé doesn't currently expose.
+    tech: [
+      RESUME.tech[0], // AI / LLM Systems (base)
+      {
+        label: 'Generative AI / Image',
+        pills: [
+          'Stable Diffusion',
+          'SDXL',
+          'ComfyUI',
+          'Diffusers',
+          'ControlNet',
+          'LoRA',
+          'textual inversion',
+          'IP-Adapter',
+          'inpainting',
+          'outpainting',
+          'image upscaling',
+          'background removal',
+        ],
+      },
+      ...RESUME.tech.slice(1), // Retrieval / AppEng / Cloud / Data / Reliability (base, unchanged)
+      {
+        label: 'Forward-Deployed / Customer Engineering',
+        pills: [
+          'technical discovery workshops',
+          'customer co-development',
+          'executive technical communication',
+          'prototype-to-production delivery',
+          'reusable implementation patterns',
+          'playbooks',
+          'product feedback synthesis',
+          'rapid prototyping',
+        ],
       },
     ],
 
