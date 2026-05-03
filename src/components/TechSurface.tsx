@@ -1,15 +1,17 @@
-import { RESUME } from '@/content/resume';
+import { useResume } from '@/content/resume-context';
 import SectionIndex from './SectionIndex';
 import './TechSurface.css';
 
 export default function TechSurface() {
+  const { resume: RESUME } = useResume();
+  const s = RESUME.sections.tech;
   return (
     <section className="section tech" aria-labelledby="tech-heading">
       <div className="container tech__inner">
         <header className="tech__head">
-          <SectionIndex number="05" label="Toolkit" />
+          <SectionIndex number={s.number} label={s.label} />
           <h2 id="tech-heading" className="tech__heading font-display opsz-head">
-            Toolkit.
+            {s.heading}
           </h2>
         </header>
 

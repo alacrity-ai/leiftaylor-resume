@@ -54,6 +54,10 @@ export interface ExperienceCard {
 
 export interface ExperienceEntry {
   range: string;
+  /** Optional override used by the print/PDF route when the displayed
+   *  date precision should be richer than the website's compact `range`
+   *  (e.g., website shows "2023 — Present", PDF shows "Mar 2023 — Present"). */
+  pdfRange?: string;
   cards: ExperienceCard[];
 }
 
@@ -62,9 +66,23 @@ export interface TechBucket {
   pills: string[];
 }
 
+export interface Section {
+  /** Two-digit ordinal shown in the section index — '01', '02', etc. */
+  number: string;
+  /** Short label sitting next to the index in the section header. */
+  label: string;
+  /** Optional hardcoded H2 — only used by sections whose H2 is not already
+   *  driven from another data field (e.g., OperatingModel uses
+   *  `operatingModel.heading`; Contact uses `contact.heading`). */
+  heading?: string;
+  /** Optional descriptor paragraph rendered under the H2. */
+  descriptor?: string;
+}
+
 const EXPERIENCE: ExperienceEntry[] = [
   {
     range: '2023 — Present',
+    pdfRange: 'Mar 2023 — Present',
     cards: [
       {
         company: 'ConnectBase',
@@ -150,6 +168,7 @@ const EXPERIENCE: ExperienceEntry[] = [
   },
   {
     range: '2019 — 2023',
+    pdfRange: 'Jan 2019 — Mar 2023',
     cards: [
       {
         company: 'Mobile Heartbeat',
@@ -166,6 +185,7 @@ const EXPERIENCE: ExperienceEntry[] = [
   },
   {
     range: '2016 — 2019',
+    pdfRange: 'Jun 2016 — Jan 2019',
     cards: [
       {
         company: 'Actifio',
@@ -195,6 +215,57 @@ export const RESUME = {
     docxHref: '/leif-taylor-resume-2026-05.docx',
     siteUrl: 'https://resume.lalalimited.com',
     lastReviewed: '2026-05-02',
+
+    // schema.org Person fields. `jobTitle` and `jobDescription` are what
+    // crawlers (Google, LinkedIn rich cards, AI training pipelines) read
+    // when they index the site. Variants typically override these to
+    // retune SEO for a specific role.
+    jobTitle:
+      'AI-Native Principal Engineer & Product-to-Production Architect',
+    jobDescription:
+      'I translate ambiguous business requirements into secure, scalable, revenue-producing systems — using agentic workflows to move from idea to production at exceptional speed.',
+    worksFor: {
+      name: 'ConnectBase',
+      url: 'https://connectbase.com',
+    },
+    alumniOf: {
+      name: 'San Francisco Conservatory of Music',
+      url: 'https://sfcm.edu',
+    },
+    address: {
+      addressLocality: 'Greater Boston Area',
+      addressRegion: 'MA',
+      addressCountry: 'US',
+    },
+    /** Shorter description used by the Twitter card (which truncates at
+     *  ~200 chars on mobile). Distinct from `jobDescription` so the
+     *  longer copy can stay first-person and tagline-shaped. */
+    shortDescription:
+      'Translates ambiguous business requirements into secure, scalable, revenue-producing systems at agentic-era speed.',
+
+    /** Two hand-typeset lines rendered into the OG card's hero block.
+     *  Hand-broken because automatic wrap of `shortDescription` doesn't
+     *  produce a well-balanced visual. Variants typically override with
+     *  role-tuned copy. */
+    ogTaglineLines: [
+      'Ambiguous business requirements →',
+      'production systems, at agentic speed.',
+    ] as [string, string],
+    knowsAbout: [
+      'Distributed systems',
+      'Cloud architecture',
+      'AI systems',
+      'Agentic workflows',
+      'Retrieval-Augmented Generation',
+      'Model Context Protocol',
+      'Kubernetes',
+      'Azure',
+      'AWS',
+      'PostgreSQL',
+      'CI/CD',
+      'B2B SaaS',
+      'Multi-tenant platforms',
+    ],
   },
 
   hero: {
@@ -599,4 +670,67 @@ export const RESUME = {
 
   background:
     'B.M. Composition, Music Theory, Piano — San Francisco Conservatory of Music, 2009.',
+
+  // High-signal toolkit pills that the build-time ATS check must find in
+  // the rendered PDF. Subset of the flat union of every `tech[*].pills`
+  // list. Variants can replace this wholesale to retune the ATS bar for
+  // a specific role (e.g., an AI-lab variant might emphasise different
+  // pills than a platform-engineering one).
+  atsFeaturedPills: [
+    'OpenAI',
+    'Anthropic',
+    'LangChain',
+    'LangGraph',
+    'MCP',
+    'RAG',
+    'Pinecone',
+    'pgvector',
+    'NestJS',
+    'FastAPI',
+    'Spring Boot',
+    'Kubernetes',
+    'Terraform',
+    'GitHub Actions',
+    'Kafka',
+    'Snowflake',
+    'PostgreSQL',
+    'OpenTelemetry',
+    'OAuth2',
+    'OWASP',
+    'Playwright',
+  ] satisfies string[],
+
+  sections: {
+    operatingModel: {
+      number: '01',
+      label: 'How I work',
+    },
+    impact: {
+      number: '02',
+      label: 'Outcomes',
+    },
+    systems: {
+      number: '03',
+      label: 'Selected systems',
+      heading: 'Selected architecture & delivery work.',
+      descriptor:
+        'A handful of named systems with the operational and business problems they solved. Implementation details are in the experience section below.',
+    },
+    experience: {
+      number: '04',
+      label: 'Experience',
+      heading: 'Experience.',
+      descriptor:
+        'Production engineering, principal architecture, DevOps leadership, and consulting — in date order.',
+    },
+    tech: {
+      number: '05',
+      label: 'Toolkit',
+      heading: 'Toolkit.',
+    },
+    contact: {
+      number: '06',
+      label: 'Contact',
+    },
+  } satisfies Record<string, Section>,
 };

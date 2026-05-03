@@ -46,16 +46,51 @@ The dev server hot-reloads on edits to any file in `src/`. The `/print/resume` r
 
 ## Editing content
 
-Every string on every surface is in **one file**: [`src/content/resume.ts`](./src/content/resume.ts).
+For **global** changes (everything that lives on `resume.lalalimited.com/`), edit [`src/content/resume.ts`](./src/content/resume.ts) and the chrome strings in [`src/content/ui.ts`](./src/content/ui.ts).
 
 ```bash
 $EDITOR src/content/resume.ts
 
-make resumes      # regenerate PDF + DOCX (≈10s for both)
+make resumes      # regenerate the global PDF + DOCX
 make deploy       # build + deploy to Cloudflare Pages
 ```
 
-That's the complete update loop.
+For **per-company tailoring** (a tailored brochure URL like `/anthropic`), see the next section.
+
+---
+
+## Variants — per-company tailored brochures
+
+The repo supports **dispatch URLs**: tailored versions of the résumé living at `resume.lalalimited.com/<slug>` (e.g., `/anthropic`). Each variant is a small TypeScript file that overrides only the fields that need retuning — hero copy, outcome ordering, optional "hello card" addressed to the company. Career history and the rest fall through from base.
+
+**Adding a new variant** takes 15–30 minutes:
+
+```bash
+cp src/content/variants/_template.ts src/content/variants/microsoft.ts
+
+# 1. Fill in slug, company, hello, and any resume overrides
+# 2. Register the variant in src/content/variants/index.ts
+$EDITOR src/content/variants/microsoft.ts
+$EDITOR src/content/variants/index.ts
+
+make resumes-all   # regenerate every variant's PDF + DOCX
+make deploy
+```
+
+**What you can override:** anything in `RESUME` except `experience` and `background` (career history is fact, not pitch). Arrays (impact, tech, etc.) are replaced wholesale; nested objects merge by key. TypeScript catches typo'd field names at compile time.
+
+**The dispatch model:** variant URLs are not advertised. They get `<meta robots noindex,nofollow>` injected automatically, an auto-generated `Disallow:` line in `robots.txt`, and they're excluded from `sitemap.xml`. The recruiter you sent the link to is the only one who'll find it.
+
+**Build commands:**
+
+```bash
+make resumes-all                                # all variants + global
+make resume-pdf-slug   SLUG=microsoft           # one variant's PDF only
+make resume-docx-slug  SLUG=microsoft           # one variant's DOCX only
+make resumes                                    # global only (existing flow)
+```
+
+**Retiring a variant:** set `archived: true` in the variant file. The slug 404s and stops emitting artifacts. The file stays in the repo as a record.
 
 ---
 
@@ -67,38 +102,49 @@ living-resume/
 │   └── api/
 │       └── contact.ts             Cloudflare Pages Function — contact-form mailer
 ├── public/                         Static assets (deployed as-is)
-│   ├── leif-taylor-resume-2026-05.pdf    Generated PDF
-│   ├── leif-taylor-resume-2026-05.docx   Generated DOCX
-│   ├── og-image.png / .svg        OG image (link previews)
+│   ├── leif-taylor-resume-2026-05.pdf    Generated GLOBAL PDF
+│   ├── leif-taylor-resume-2026-05.docx   Generated GLOBAL DOCX
+│   ├── <slug>/                    Per-variant artifacts (PDF, DOCX, og-image.png)
+│   ├── og-image.png / .svg        OG image (link previews) — SVG is now a template
 │   ├── llms.txt                   LLM-crawler-friendly summary
-│   ├── robots.txt
-│   └── favicon.svg
+│   └── favicon.svg                (robots.txt is generated to dist/ at build time)
 ├── scripts/
-│   ├── generate-pdf.ts             Puppeteer driver: spins up a static server,
-│   │                               navigates to /print/resume, waits for fonts,
-│   │                               page.pdf() → public/leif-taylor-resume-*.pdf
-│   ├── generate-docx.ts            docx-package builder: reads RESUME → emits
-│   │                               an ATS-friendly Word document
-│   ├── build-og-image.ts           SVG → PNG OG image generation (sharp)
-│   ├── build-sitemap.ts            sitemap.xml builder
+│   ├── generate-pdf.ts             Puppeteer driver: loops over [base, ...variants],
+│   │                               navigates to each print route, waits for fonts,
+│   │                               page.pdf() → public/[<slug>/]leif-taylor-resume-*.pdf
+│   ├── generate-docx.ts            docx-package builder: loops over [base, ...variants]
+│   │                               and emits per-variant ATS-friendly Word documents
+│   ├── build-og-image.ts           Per-variant SVG template substitution → PNG (sharp)
+│   ├── build-sitemap.ts            sitemap.xml builder (variant-blind)
+│   ├── build-robots.ts             robots.txt with auto-Disallow per variant slug
 │   └── prerender-*.mjs             Node ESM loader helpers for prerender.ts
 ├── src/
-│   ├── App.tsx                     Routes: / (HomePage), /print/resume (ResumePrint)
+│   ├── App.tsx                     Routes: / (global), /:slug (variants), /print/resume, /:slug/print/resume, * (NotFound)
 │   ├── main.tsx                    Hydration + StrictMode wrapper
-│   ├── components/                 Site UI components
+│   ├── components/                 Site UI components (read content via useResume() context)
 │   ├── content/
-│   │   └── resume.ts               ★ Single source of truth for all content
+│   │   ├── resume.ts               ★ Base RESUME — single source of truth for global content
+│   │   ├── ui.ts                   UI string surface (CTAs, modal/sheet copy, footer chrome)
+│   │   ├── types.ts                Resume / UI / Variant / Hello / DeepPartial type aliases
+│   │   ├── content-utils.ts        Shared helpers (isPrimaryEmployment, URL labelers, title-case)
+│   │   ├── resolve-variant.ts      Deep-merge resolver: slug → resolved Resume + UI + hello
+│   │   ├── resume-context.ts       React context + useResume() hook
+│   │   └── variants/
+│   │       ├── index.ts            Variant registry
+│   │       ├── _template.ts        Copy this when adding a new variant
+│   │       └── <slug>.ts           Per-company override files (e.g., anthropic.ts)
 │   ├── lib/
 │   │   └── schema.ts               schema.org Person JSON-LD builder
 │   ├── pages/
-│   │   └── HomePage.tsx            Public site composition
+│   │   ├── HomePage.tsx            Public site composition (variant-aware)
+│   │   └── NotFound.tsx            Unknown-slug fallback
 │   ├── print/
 │   │   ├── ResumePrint.tsx         PDF-shaped layout (Puppeteer renders this)
 │   │   └── ResumePrint.css
 │   └── styles/
 │       ├── globals.css             Tokens + base + reset
 │       └── print.css               Print-specific overrides
-├── prerender.ts                    Server-side render of both routes to static HTML
+├── prerender.ts                    SSRs every route in [/, /:slug, /print/resume, /:slug/print/resume]
 ├── index.html                      Vite entry point
 ├── Makefile                        Operator ergonomics (run `make help`)
 ├── wrangler.toml                   Cloudflare Pages deploy config
@@ -118,9 +164,13 @@ make lint              # eslint --max-warnings 0
 make build             # full production build (vite + prerender + sitemap + og-image)
 make preview           # serve dist/ on :4173
 
-make resume-pdf        # PDF only (full build + Puppeteer)
-make resume-docx       # DOCX only (~1s, no build needed)
-make resumes           # both formats
+make resume-pdf        # GLOBAL PDF only (full build + Puppeteer)
+make resume-docx       # GLOBAL DOCX only (~1s, no build needed)
+make resumes           # GLOBAL PDF + DOCX
+make resumes-all       # ALL variants + global, PDF + DOCX
+
+make resume-pdf-slug   SLUG=<slug>   # one variant's PDF
+make resume-docx-slug  SLUG=<slug>   # one variant's DOCX
 
 make deploy            # build + wrangler pages deploy
 make smoke             # ping the live URLs
@@ -134,9 +184,11 @@ make clean             # rm dist/ + tsbuildinfo
 
 A few things in this repo that are worth a closer look:
 
-### One data source, three formats
+### One data source, many formats and many variants
 
-`src/content/resume.ts` exports a typed `RESUME` object that's the canonical content for every surface. The website's React components read from it; the PDF route's React tree reads from it; the DOCX builder reads from it. There is no parallel content file for the PDF or DOCX — diverging the formats is *prevented by construction*, not by discipline.
+`src/content/resume.ts` exports a typed `RESUME` object that's the canonical content for every surface. Every component reads it via `useResume()`; the PDF and DOCX builders read it via `resolveVariant()`. There is no parallel content file for the PDF, DOCX, or any variant — diverging the formats is *prevented by construction*, not by discipline.
+
+Per-company variants live in `src/content/variants/<slug>.ts` and override only the fields that differ. A resolver (`src/content/resolve-variant.ts`) deep-merges each variant onto the base at render time, and `<slug>` flows through React Router so the same components render the variant's data without knowing the slug exists.
 
 ### Prerendering
 

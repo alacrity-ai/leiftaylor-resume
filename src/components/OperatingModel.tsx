@@ -1,9 +1,11 @@
-import { RESUME } from '@/content/resume';
+import { useResume } from '@/content/resume-context';
 import SectionIndex from './SectionIndex';
 import './OperatingModel.css';
 
 export default function OperatingModel() {
+  const { resume: RESUME } = useResume();
   const { heading, paragraphs } = RESUME.operatingModel;
+  const s = RESUME.sections.operatingModel;
 
   return (
     <section
@@ -11,7 +13,7 @@ export default function OperatingModel() {
       aria-labelledby="operating-model-heading"
     >
       <div className="container operating-model__inner">
-        <SectionIndex number="01" label="How I work" />
+        <SectionIndex number={s.number} label={s.label} />
         <h2
           id="operating-model-heading"
           className="operating-model__heading font-display opsz-head"

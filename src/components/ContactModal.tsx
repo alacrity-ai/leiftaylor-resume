@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Turnstile } from '@marsidev/react-turnstile';
+import { useResume } from '@/content/resume-context';
 import './ContactModal.css';
 
 /**
@@ -36,6 +37,8 @@ interface Props {
 }
 
 export default function ContactModal({ open, onClose }: Props) {
+  const { ui } = useResume();
+  const M = ui.modal;
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [state, setState] = useState<SubmitState>({ kind: 'idle' });
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -133,9 +136,9 @@ export default function ContactModal({ open, onClose }: Props) {
         setState({ kind: 'sent' });
         return;
       }
-      setState({ kind: 'error', message: body.message ?? 'Something went wrong. Please try again.' });
+      setState({ kind: 'error', message: body.message ?? M.errors.genericError });
     } catch {
-      setState({ kind: 'error', message: 'Network error — please try again.' });
+      setState({ kind: 'error', message: M.errors.networkError });
     }
   }
 
@@ -161,50 +164,48 @@ export default function ContactModal({ open, onClose }: Props) {
       >
         <header className="modal-head">
           <h2 id="contact-modal-title" className="modal-title font-display">
-            Tell me what you're trying to build.
+            {M.title}
           </h2>
           <button
             type="button"
             onClick={onClose}
             className="modal-close font-mono"
-            aria-label="Close"
+            aria-label={M.closeAria}
           >
-            ESC
+            {M.closeLabel}
           </button>
         </header>
 
         {state.kind === 'sent' ? (
           <div className="modal-thanks" role="status" aria-live="polite">
-            <p className="font-display modal-thanks__title">Thanks — I’ll be in touch.</p>
-            <p className="modal-thanks__body">
-              Your message landed. I’ll usually reply within a day or two.
-            </p>
+            <p className="font-display modal-thanks__title">{M.successTitle}</p>
+            <p className="modal-thanks__body">{M.successBody}</p>
             <button type="button" className="btn btn-primary modal-thanks__close" onClick={onClose}>
-              Close
+              {M.successCtaLabel}
             </button>
           </div>
         ) : (
           <form className="modal-form" onSubmit={handleSubmit(onSubmit)} noValidate>
-            <Field label="Your name" error={errors.name?.message} htmlFor="cm-name">
+            <Field label={M.fields.nameLabel} error={errors.name?.message} htmlFor="cm-name">
               <NameInput register={register} firstFieldRef={firstFieldRef} />
             </Field>
 
-            <Field label="Email" error={errors.email?.message} htmlFor="cm-email">
+            <Field label={M.fields.emailLabel} error={errors.email?.message} htmlFor="cm-email">
               <input
                 id="cm-email"
                 type="email"
                 autoComplete="email"
                 inputMode="email"
                 {...register('email', {
-                  required: 'Required.',
-                  pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, message: 'Email looks off.' },
+                  required: M.errors.required,
+                  pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, message: M.errors.emailInvalid },
                 })}
               />
             </Field>
 
             <Field
-              label="Phone"
-              hint="Optional"
+              label={M.fields.phoneLabel}
+              hint={M.fields.phoneHint}
               error={errors.phone?.message}
               htmlFor="cm-phone"
             >
@@ -216,25 +217,25 @@ export default function ContactModal({ open, onClose }: Props) {
                 {...register('phone', {
                   validate: (v) => {
                     if (!v || v.trim() === '') return true;
-                    return v.replace(/\D/g, '').length >= 10 ? true : 'Looks too short.';
+                    return v.replace(/\D/g, '').length >= 10 ? true : M.errors.phoneTooShort;
                   },
                 })}
               />
             </Field>
 
             <Field
-              label="Reason for reaching out"
+              label={M.fields.reasonLabel}
               error={errors.reason?.message}
               htmlFor="cm-reason"
             >
               <textarea
                 id="cm-reason"
                 rows={5}
-                placeholder="A few sentences — what you're trying to build, the role, or why you're reaching out."
+                placeholder={M.fields.reasonPlaceholder}
                 {...register('reason', {
-                  required: 'A few sentences, please.',
-                  minLength: { value: 20, message: 'A bit more, please.' },
-                  maxLength: { value: 4000, message: 'A bit shorter, please.' },
+                  required: M.errors.reasonRequired,
+                  minLength: { value: 20, message: M.errors.reasonTooShort },
+                  maxLength: { value: 4000, message: M.errors.reasonTooLong },
                 })}
               />
             </Field>
@@ -242,7 +243,7 @@ export default function ContactModal({ open, onClose }: Props) {
             {/* Honeypot — hidden from humans, attractive to bots. */}
             <div className="modal-honeypot" aria-hidden="true">
               <label>
-                Website
+                {M.fields.honeypotLabel}
                 <input type="text" tabIndex={-1} autoComplete="off" {...register('hp_website')} />
               </label>
             </div>
@@ -270,19 +271,19 @@ export default function ContactModal({ open, onClose }: Props) {
                 className="btn modal-cancel"
                 disabled={sending}
               >
-                Cancel
+                {M.cancelLabel}
               </button>
               <button
                 type="submit"
                 disabled={!canSubmit}
                 className="btn btn-primary modal-submit"
               >
-                {sending ? 'Sending…' : 'Send message'}
+                {sending ? M.submitSendingLabel : M.submitLabel}
               </button>
             </div>
 
             <p className="modal-privacy mono-meta mono-meta--faint">
-              Your message goes only to Leif. Not stored, not shared, not used for anything else.
+              {M.privacyNote}
             </p>
           </form>
         )}
@@ -329,9 +330,11 @@ function NameInput({
   register: ReturnType<typeof useForm<FormFields>>['register'];
   firstFieldRef: React.MutableRefObject<HTMLInputElement | null>;
 }) {
+  const { ui } = useResume();
+  const M = ui.modal;
   const { ref: rhfRef, ...rest } = register('name', {
-    required: 'Required.',
-    minLength: { value: 2, message: 'Too short.' },
+    required: M.errors.required,
+    minLength: { value: 2, message: M.errors.nameTooShort },
   });
   return (
     <input

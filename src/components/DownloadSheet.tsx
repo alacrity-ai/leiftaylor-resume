@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { RESUME } from '@/content/resume';
+import { useResume } from '@/content/resume-context';
 import './DownloadSheet.css';
 
 interface Props {
@@ -16,6 +16,8 @@ interface Props {
  * the sheet. First focusable item is auto-focused on open.
  */
 export default function DownloadSheet({ open, onClose }: Props) {
+  const { resume: RESUME, ui } = useResume();
+  const D = ui.download;
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<Element | null>(null);
 
@@ -69,7 +71,7 @@ export default function DownloadSheet({ open, onClose }: Props) {
       >
         <header className="dl-sheet__head">
           <h2 id="dl-sheet-title" className="dl-sheet__title font-display">
-            Download résumé.
+            {D.title}
           </h2>
           <button
             type="button"
@@ -77,13 +79,11 @@ export default function DownloadSheet({ open, onClose }: Props) {
             onClick={onClose}
             aria-label="Close"
           >
-            ESC
+            {D.closeLabel}
           </button>
         </header>
 
-        <p className="dl-sheet__sub">
-          Two formats. Pick whichever your workflow expects.
-        </p>
+        <p className="dl-sheet__sub">{D.sub}</p>
 
         <ul className="dl-sheet__options" role="list">
           <li>
@@ -93,14 +93,10 @@ export default function DownloadSheet({ open, onClose }: Props) {
               download
               onClick={onClose}
             >
-              <span className="dl-sheet__format font-mono">PDF</span>
+              <span className="dl-sheet__format font-mono">{D.pdf.format}</span>
               <span className="dl-sheet__option-body">
-                <span className="dl-sheet__option-title">
-                  Designed PDF
-                </span>
-                <span className="dl-sheet__option-desc">
-                  Typeset, hyperlinks live, opens in any browser. The default for human readers.
-                </span>
+                <span className="dl-sheet__option-title">{D.pdf.title}</span>
+                <span className="dl-sheet__option-desc">{D.pdf.desc}</span>
               </span>
               <span className="dl-sheet__arrow" aria-hidden="true">
                 ↓
@@ -114,14 +110,10 @@ export default function DownloadSheet({ open, onClose }: Props) {
               download
               onClick={onClose}
             >
-              <span className="dl-sheet__format font-mono">DOCX</span>
+              <span className="dl-sheet__format font-mono">{D.docx.format}</span>
               <span className="dl-sheet__option-body">
-                <span className="dl-sheet__option-title">
-                  Word document
-                </span>
-                <span className="dl-sheet__option-desc">
-                  Single-column, plain-text-first. The most reliably parsed format for ATS / recruiter screening tools.
-                </span>
+                <span className="dl-sheet__option-title">{D.docx.title}</span>
+                <span className="dl-sheet__option-desc">{D.docx.desc}</span>
               </span>
               <span className="dl-sheet__arrow" aria-hidden="true">
                 ↓
@@ -130,9 +122,7 @@ export default function DownloadSheet({ open, onClose }: Props) {
           </li>
         </ul>
 
-        <p className="dl-sheet__note mono-meta mono-meta--faint">
-          Both formats are generated from the same source data and updated on every site deploy.
-        </p>
+        <p className="dl-sheet__note mono-meta mono-meta--faint">{D.note}</p>
       </div>
     </div>
   );

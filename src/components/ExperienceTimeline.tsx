@@ -1,8 +1,10 @@
-import { RESUME } from '@/content/resume';
+import { useResume } from '@/content/resume-context';
 import SectionIndex from './SectionIndex';
 import './ExperienceTimeline.css';
 
 export default function ExperienceTimeline() {
+  const { resume: RESUME } = useResume();
+  const s = RESUME.sections.experience;
   return (
     <section
       className="section section-tinted experience"
@@ -10,13 +12,10 @@ export default function ExperienceTimeline() {
     >
       <div className="container experience__inner">
         <header className="experience__head">
-          <SectionIndex number="04" label="Experience" />
+          <SectionIndex number={s.number} label={s.label} />
           <div className="section-head">
-            <h2 id="experience-heading">Experience.</h2>
-            <p>
-              Production engineering, principal architecture, DevOps leadership, and
-              consulting — in date order.
-            </p>
+            <h2 id="experience-heading">{s.heading}</h2>
+            {s.descriptor ? <p>{s.descriptor}</p> : null}
           </div>
         </header>
 

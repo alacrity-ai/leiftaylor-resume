@@ -1,19 +1,18 @@
-import { RESUME } from '@/content/resume';
+import { useResume } from '@/content/resume-context';
 import SectionIndex from './SectionIndex';
 import './SystemsGrid.css';
 
 export default function SystemsGrid() {
+  const { resume: RESUME } = useResume();
+  const s = RESUME.sections.systems;
   return (
     <section className="section systems" aria-labelledby="systems-heading">
       <div className="container systems__inner">
         <header className="systems__head">
-          <SectionIndex number="03" label="Selected systems" />
+          <SectionIndex number={s.number} label={s.label} />
           <div className="section-head">
-            <h2 id="systems-heading">Selected architecture &amp; delivery work.</h2>
-            <p>
-              A handful of named systems with the operational and business problems they solved.
-              Implementation details are in the experience section below.
-            </p>
+            <h2 id="systems-heading">{s.heading}</h2>
+            {s.descriptor ? <p>{s.descriptor}</p> : null}
           </div>
         </header>
 

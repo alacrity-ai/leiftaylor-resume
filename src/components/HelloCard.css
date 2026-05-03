@@ -1,0 +1,53 @@
+/*
+ * Hello card — variant-only intro band above the hero. Visually
+ * distinct from the hero (paper-tinted background, oxblood rules) but
+ * built from the same type and color tokens so it reads as part of
+ * the same composition.
+ */
+
+.hello-card {
+  position: relative;
+  background: var(--paper-tint, #F2EFE6);
+  border-top: 3px solid var(--accent, #7A1F2B);
+  border-bottom: 1px solid var(--rule, #E1DFD6);
+  padding: 2.5rem 0 2.75rem;
+  margin-top: 0;
+}
+
+.hello-card__inner {
+  max-width: 70ch;
+}
+
+.hello-card__kicker {
+  margin: 0 0 0.65rem;
+  letter-spacing: 0.16em;
+}
+
+.hello-card__title {
+  font-size: clamp(1.85rem, 3.2vw, 2.5rem);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.018em;
+  margin: 0 0 0.85rem;
+  color: var(--ink, #14171A);
+}
+
+.hello-card__body {
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--ink-muted, #3A3F46);
+  margin: 0 0 1.35rem;
+  max-width: 56ch;
+}
+
+.hello-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+@media (min-width: 768px) {
+  .hello-card {
+    padding: 3rem 0 3.25rem;
+  }
+}

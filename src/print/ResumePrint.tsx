@@ -1,47 +1,70 @@
 /**
- * The PDF-shaped layout. Reads the same RESUME content data the website
- * uses but renders it for paper — single column, dense typography, page-
- * break-aware, ATS-parseable.
+ * The PDF-shaped layout. Renders entirely from the same RESUME content
+ * data the website uses, formatted for paper — single column, dense
+ * typography, page-break-aware, ATS-parseable.
  *
- * Mounted at /print/resume. Driven by Puppeteer at build time to produce
- * public/leif-taylor-resume-2026-05.pdf.
+ * Mounted at /print/resume (global) and /<slug>/print/resume (variants).
+ * Driven by Puppeteer at build time to produce per-variant PDFs.
  */
 import { useLayoutEffect } from 'react';
-import { RESUME } from '@/content/resume';
+import { useParams } from 'react-router-dom';
+import { ResumeContext, useResume } from '@/content/resume-context';
+import { resolveVariant } from '@/content/resolve-variant';
+import {
+  isPrimaryEmployment,
+  linkedinLabel,
+  siteHostLabel,
+  startYearFromDates,
+  titleCaseLabel,
+} from '@/content/content-utils';
+import NotFound from '@/pages/NotFound';
 import './ResumePrint.css';
 
-const m = RESUME.meta;
-
 export default function ResumePrint() {
+  const { slug } = useParams();
+  const resolved = resolveVariant(slug);
+  if (resolved === null) return <NotFound />;
+  return (
+    <ResumeContext.Provider value={resolved}>
+      <ResumePrintBody />
+    </ResumeContext.Provider>
+  );
+}
+
+function ResumePrintBody() {
+  const { resume: RESUME, ui: UI } = useResume();
+  const m = RESUME.meta;
+
   // Body class management — disables the website's paper texture and
   // hero stagger defaults so the print page renders clean white.
   useLayoutEffect(() => {
     document.body.classList.add('printing');
-    document.title = 'Leif Taylor — Résumé';
+    document.title = `${m.name} — Résumé`;
     return () => {
       document.body.classList.remove('printing');
     };
-  }, []);
+  }, [m.name]);
+
+  const primary = RESUME.experience.filter(isPrimaryEmployment);
+  const consulting = RESUME.experience.filter((e) => !isPrimaryEmployment(e));
 
   return (
     <article className="resume-print">
       {/* ─── HEADER ───────────────────────────────────────── */}
       <header className="resume-print__header">
-        <h1 className="resume-print__name">Leif Taylor</h1>
-        <p className="resume-print__eyebrow">
-          AI-Native Principal Engineer · Product-to-Production Architect
-        </p>
+        <h1 className="resume-print__name">{m.name}</h1>
+        <p className="resume-print__eyebrow">{m.titleStack}</p>
         <p className="resume-print__contact">
-          <span>Greater Boston Area</span>
+          <span>{m.location}</span>
           <span aria-hidden="true"> · </span>
           <a href={`mailto:${m.email}`}>{m.email}</a>
           <span aria-hidden="true"> · </span>
           <a href={m.linkedin} target="_blank" rel="noreferrer">
-            linkedin.com/in/leiftaylor
+            {linkedinLabel(m.linkedin)}
           </a>
           <span aria-hidden="true"> · </span>
           <a href={m.siteUrl} target="_blank" rel="noreferrer">
-            resume.lalalimited.com
+            {siteHostLabel(m.siteUrl)}
           </a>
         </p>
         <hr className="resume-print__rule" />
@@ -49,28 +72,24 @@ export default function ResumePrint() {
 
       {/* ─── THESIS ───────────────────────────────────────── */}
       <p className="resume-print__thesis">
-        <em>
-          I translate ambiguous business requirements into secure, scalable,
-          revenue-producing systems — using agentic workflows to move from idea
-          to production at exceptional speed.
-        </em>
+        <em>{RESUME.hero.tagline}</em>
       </p>
 
       {/* ─── HOW I WORK ──────────────────────────────────── */}
       <section className="resume-print__section">
-        <h2 className="resume-print__section-head">How I Work</h2>
-        <p className="resume-print__paragraph">
-          I work end-to-end. One operator across product translation,
-          architecture, full-stack code, tests, infrastructure, and production —
-          agentic workflows for speed, deep architectural judgment for trust.
-          Where a 2019 team spent a quarter coordinating handoffs across
-          specialists, I ship a working system in weeks.
-        </p>
+        <h2 className="resume-print__section-head">
+          {titleCaseLabel(RESUME.sections.operatingModel.label)}
+        </h2>
+        {RESUME.operatingModel.paragraphs.map((p, i) => (
+          <p className="resume-print__paragraph" key={i}>
+            {p}
+          </p>
+        ))}
       </section>
 
       {/* ─── OUTCOMES ─────────────────────────────────────── */}
       <section className="resume-print__section">
-        <h2 className="resume-print__section-head">Outcomes</h2>
+        <h2 className="resume-print__section-head">{RESUME.sections.impact.label}</h2>
         <dl className="resume-print__outcomes">
           {RESUME.impact.map((o) => (
             <div className="resume-print__outcome-row" key={o.value}>
@@ -83,226 +102,106 @@ export default function ResumePrint() {
 
       {/* ─── EXPERIENCE ──────────────────────────────────── */}
       <section className="resume-print__section">
-        <h2 className="resume-print__section-head">Experience</h2>
+        <h2 className="resume-print__section-head">{RESUME.sections.experience.label}</h2>
 
-        {/* ConnectBase split entry */}
-        <article className="resume-print__role">
-          <header className="resume-print__role-head">
-            <h3 className="resume-print__company">ConnectBase</h3>
-            <span className="resume-print__dates">Mar 2023 — Present</span>
-          </header>
+        {primary.map((entry) => {
+          const firstCard = entry.cards[0];
+          const dateRange = entry.pdfRange ?? entry.range;
+          return (
+            <article className="resume-print__role" key={`${firstCard.company}-${entry.range}`}>
+              <header className="resume-print__role-head">
+                <h3 className="resume-print__company">{firstCard.company}</h3>
+                <span className="resume-print__dates">{dateRange}</span>
+              </header>
 
-          {/* Principal Engineer */}
-          <div className="resume-print__sub-role">
-            <p className="resume-print__role-title">
-              Principal Engineer
-              <span className="resume-print__badge">Current</span>
-              <span className="resume-print__role-dates">2025 — Present</span>
-            </p>
-            <ul className="resume-print__bullets">
-              <li>
-                Reengineered the monolithic pricing engine into a distributed
-                worker-driven architecture (concurrent quote computation, fault
-                isolation, horizontal scale)
-              </li>
-              <li>
-                Modernized legacy VM-era patterns into stateless, horizontally-
-                scalable services
-              </li>
-              <li>
-                Chief developer and technical owner of the Direct-to-Supplier
-                Ordering platform — wholesalers and channel partners purchase
-                from thousands of suppliers in one interface
-              </li>
-              <li>
-                Integrated AI-assisted workflows for supplier ingestion,
-                semantic search, TAM analysis, and data-layer intelligence
-              </li>
-              <li>
-                Daily use of agentic dev workflows (Claude Code, sub-agent
-                orchestration, MCP-style tool integration) across implementation,
-                refactoring, and architecture iteration
-              </li>
-              <li>
-                Built and maintains the team's operating patterns for AI-augmented
-                delivery — when to delegate to an agent, where the human-in-the-
-                loop boundary sits, how to validate generated work
-              </li>
-            </ul>
-          </div>
-
-          {/* Promotion connector */}
-          <p className="resume-print__connector">
-            ↑ Promoted to Principal Engineer (2025)
-          </p>
-
-          {/* Director of DevOps */}
-          <div className="resume-print__sub-role">
-            <p className="resume-print__role-title">
-              Director of DevOps
-              <span className="resume-print__role-dates">2023 — 2025</span>
-            </p>
-            <ul className="resume-print__bullets">
-              <li>
-                Reduced Azure spend by $50K+/month → $600K+ annualized savings,
-                in 2 months
-              </li>
-              <li>
-                Modernized 30+ legacy VM-hosted services into stateless,
-                horizontally-scalable microservices
-              </li>
-              <li>
-                Built CI/CD across 30+ heterogeneous services (Java, TypeScript /
-                Node, Python, C#)
-              </li>
-              <li>
-                Stood up enterprise-wide feature-flag, secrets-management, and
-                progressive (canary) delivery infrastructure
-              </li>
-              <li>
-                Stood up unit / functional / e2e coverage across the suite using
-                AI-assisted test authorship
-              </li>
-              <li>Disaster-recovery and outage point person</li>
-            </ul>
-          </div>
-        </article>
-
-        {/* Mobile Heartbeat */}
-        <article className="resume-print__role">
-          <header className="resume-print__role-head">
-            <h3 className="resume-print__company">Mobile Heartbeat</h3>
-            <span className="resume-print__dates">Jan 2019 — Mar 2023</span>
-          </header>
-          <p className="resume-print__role-title">
-            Principal DevOps Lead
-            <span className="resume-print__role-note">
-              Promoted from Senior DevOps Engineer
-            </span>
-          </p>
-          <ul className="resume-print__bullets">
-            <li>
-              Designed a serverless internal application testing framework, fully
-              Terraform-driven, integrated into CI/CD
-            </li>
-            <li>
-              Built CI/CD for multitenant microservice apps on Azure — Terraform
-              + Flux/Helm + Kubernetes + automated test deployment + DB
-              bootstrapping
-            </li>
-            <li>Designed CI/CD pipelines for iOS and Android mobile applications</li>
-            <li>
-              Customer-release support across Android, iOS, and Windows platforms
-            </li>
-          </ul>
-        </article>
-
-        {/* Actifio */}
-        <article className="resume-print__role">
-          <header className="resume-print__role-head">
-            <h3 className="resume-print__company">Actifio</h3>
-            <span className="resume-print__dates">Jun 2016 — Jan 2019</span>
-          </header>
-          <p className="resume-print__role-title">
-            Head of DevOps
-            <span className="resume-print__role-note">
-              Promoted from DevOps Intern → Lead → Head
-            </span>
-          </p>
-          <ul className="resume-print__bullets">
-            <li>
-              Chief developer of the automated regression testing framework —
-              Python/Node + Docker + Ansible + Jenkins + Robot Framework
-            </li>
-            <li>
-              Managed 100+ dev databases (Oracle, SQL Server) and 2,000+ VMs
-              across on-prem ESXi, Hyper-V, physical hosts, and AWS EC2
-            </li>
-            <li>
-              Travelled to India to mentor and code-review the distributed
-              engineering team
-            </li>
-            <li>
-              Built developer-portal tooling: test execution, host management,
-              log analysis
-            </li>
-          </ul>
-        </article>
+              {entry.cards.map((card, idx) => {
+                const showCrossCardConnector = idx > 0 && !!card.promotedFrom;
+                const showIntraCardNote =
+                  idx === 0 && !!card.promotedFrom && entry.cards.length === 1;
+                const connectorYear =
+                  showCrossCardConnector
+                    ? startYearFromDates(entry.cards[idx - 1]?.dates)
+                    : null;
+                return (
+                  <div className="resume-print__sub-role" key={`${card.role}-${idx}`}>
+                    {showCrossCardConnector ? (
+                      <p className="resume-print__connector">
+                        ↑ {card.promotedFrom}
+                        {connectorYear ? ` (${connectorYear})` : ''}
+                      </p>
+                    ) : null}
+                    <p className="resume-print__role-title">
+                      {card.role}
+                      {card.badge ? (
+                        <span className="resume-print__badge">
+                          {card.badge.charAt(0) + card.badge.slice(1).toLowerCase()}
+                        </span>
+                      ) : null}
+                      {card.dates ? (
+                        <span className="resume-print__role-dates">{card.dates}</span>
+                      ) : null}
+                      {showIntraCardNote ? (
+                        <span className="resume-print__role-note">{card.promotedFrom}</span>
+                      ) : null}
+                    </p>
+                    {card.bullets ? (
+                      <ul className="resume-print__bullets">
+                        {card.bullets.map((b, i) => (
+                          <li key={i}>{b}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </article>
+          );
+        })}
       </section>
 
       {/* ─── CONSULTING & FRACTIONAL ─────────────────────── */}
       <section className="resume-print__section">
-        <h2 className="resume-print__section-head">Consulting &amp; Fractional</h2>
+        <h2 className="resume-print__section-head">{UI.print.consultingHeading}</h2>
 
-        <article className="resume-print__consulting">
-          <header className="resume-print__consulting-head">
-            <span className="resume-print__consulting-name">
-              Chemveric — Technical Director
-            </span>
-            <span className="resume-print__dates">2025 — 2026</span>
-          </header>
-          <p className="resume-print__consulting-body">
-            Architected and led end-to-end development of a B2B SaaS
-            cheminformatics marketplace. Multi-tenant NestJS / Postgres / RDKit /
-            AWS, with AI-assisted ingestion, RFQ workflows, and funding-
-            opportunity matching.
-          </p>
-        </article>
-
-        <article className="resume-print__consulting">
-          <header className="resume-print__consulting-head">
-            <span className="resume-print__consulting-name">
-              Alacrity Solutions — Founding Member · Principal Architect
-            </span>
-            <span className="resume-print__dates">2022 — Present</span>
-          </header>
-          <p className="resume-print__consulting-body">
-            AI consulting practice helping F500s operationalize LLMs across
-            software development, customer support, finance, compliance, and
-            scientific data. Engagements with global tax-tech, computational-
-            science, and industrial-chemistry clients.
-          </p>
-        </article>
-
-        <article className="resume-print__consulting">
-          <header className="resume-print__consulting-head">
-            <span className="resume-print__consulting-name">
-              Imprint.live — CTO · Principal Architect
-            </span>
-            <span className="resume-print__dates">2022 — 2023</span>
-          </header>
-          <p className="resume-print__consulting-body">
-            AI-driven social platform. OpenAI-powered moderation, synthetic-user
-            systems, user-value analytics for stakeholders.
-          </p>
-        </article>
-
-        <article className="resume-print__consulting">
-          <header className="resume-print__consulting-head">
-            <span className="resume-print__consulting-name">
-              Open Interpreter — Contributor
-            </span>
-            <span className="resume-print__dates">2023 — 2024</span>
-          </header>
-          <p className="resume-print__consulting-body">
-            The desktop app for AI power users — let agents edit files, control
-            apps, and learn new skills. Contributor to local-LLM execution
-            patterns. 64k+ stars on GitHub.{' '}
-            <a
-              href="https://github.com/openinterpreter/open-interpreter"
-              target="_blank"
-              rel="noreferrer"
-              className="resume-print__inline-link"
+        {consulting.map((entry) => {
+          const card = entry.cards[0];
+          return (
+            <article
+              className="resume-print__consulting"
+              key={`${card.company}-${entry.range}`}
             >
-              github.com/openinterpreter/open-interpreter
-            </a>
-          </p>
-        </article>
+              <header className="resume-print__consulting-head">
+                <span className="resume-print__consulting-name">
+                  {card.company} — {card.role}
+                </span>
+                <span className="resume-print__dates">{entry.range}</span>
+              </header>
+              {card.description ? (
+                <p className="resume-print__consulting-body">
+                  {card.description}
+                  {card.link ? (
+                    <>
+                      {' '}
+                      <a
+                        href={card.link.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="resume-print__inline-link"
+                      >
+                        {card.link.label}
+                      </a>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+            </article>
+          );
+        })}
       </section>
 
       {/* ─── TOOLKIT ─────────────────────────────────────── */}
       <section className="resume-print__section">
-        <h2 className="resume-print__section-head">Toolkit</h2>
+        <h2 className="resume-print__section-head">{RESUME.sections.tech.label}</h2>
         <dl className="resume-print__toolkit">
           {RESUME.tech.map((b) => (
             <div className="resume-print__toolkit-row" key={b.label}>

@@ -1,6 +1,7 @@
 /**
- * Generates an ATS-friendly .docx résumé from the same RESUME data the
- * website and PDF use. Output: public/leif-taylor-resume-2026-05.docx
+ * Generates ATS-friendly .docx résumés from the same RESUME data the
+ * website and PDF use. Loops over `[null, ...VARIANT_SLUGS]` so each
+ * registered variant gets its own DOCX at the variant-aware path.
  *
  * ATS-friendliness rules followed (per docs/ATS_FEEDBACK.md):
  *  - Single column body, no tables for layout
@@ -11,8 +12,11 @@
  *  - Live hyperlinks for email / LinkedIn / site / repo
  *  - No accented characters in the visible text (we use plain dashes etc.)
  *  - Dates right-aligned via tab stops, not tables
+ *
+ * Single-variant mode: `RESUME_SLUG=<slug>` builds only that variant.
+ * `RESUME_SLUG=base` builds only the global. Otherwise all are built.
  */
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -28,11 +32,19 @@ import {
   TabStopType,
   TextRun,
 } from 'docx';
-import { RESUME } from '../src/content/resume';
+
+import { resolveVariant } from '../src/content/resolve-variant';
+import { VARIANT_SLUGS } from '../src/content/variants';
+import {
+  isPrimaryEmployment,
+  linkedinLabel,
+  siteHostLabel,
+  titleCaseLabel,
+} from '../src/content/content-utils';
+import type { Resume, UI } from '../src/content/types';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const OUT = join(ROOT, 'public', 'leif-taylor-resume-2026-05.docx');
 
 const FONT_BODY = 'Calibri';
 const FONT_HEADING = 'Calibri';
@@ -53,7 +65,7 @@ const SZ_DATE = 18; // 9pt
 
 const TAB_RIGHT = TabStopPosition.MAX;
 
-// ─── Helpers ─────────────────────────────────────────────────
+// ─── Paragraph builders (pure helpers — no global RESUME read) ──
 
 function sectionHead(text: string): Paragraph {
   return new Paragraph({
@@ -109,7 +121,6 @@ function bullet(text: string): Paragraph {
   });
 }
 
-/** A line with bold lead-in followed by descriptive text. */
 function leadIn(lead: string, rest: string): Paragraph {
   return new Paragraph({
     spacing: { after: 120, line: 300 },
@@ -120,7 +131,6 @@ function leadIn(lead: string, rest: string): Paragraph {
   });
 }
 
-/** Company + dates on one line, with dates right-aligned via tab stop. */
 function companyDateLine(company: string, dates: string): Paragraph {
   return new Paragraph({
     tabStops: [{ type: TabStopType.RIGHT, position: TAB_RIGHT }],
@@ -133,7 +143,6 @@ function companyDateLine(company: string, dates: string): Paragraph {
   });
 }
 
-/** Role title in mono small caps with optional sub-text and inner dates. */
 function roleLine(role: string, sub?: string, innerDates?: string, badge?: string): Paragraph {
   const children: TextRun[] = [
     new TextRun({
@@ -182,17 +191,17 @@ function roleLine(role: string, sub?: string, innerDates?: string, badge?: strin
   });
 }
 
-// ─── Header block ────────────────────────────────────────────
+// ─── Section assemblers (take resume / ui as input) ──────────
 
-function buildHeader(): Paragraph[] {
-  const m = RESUME.meta;
+function buildHeader(resume: Resume): Paragraph[] {
+  const m = resume.meta;
   return [
     new Paragraph({
       heading: HeadingLevel.HEADING_1,
       spacing: { after: 60 },
       children: [
         new TextRun({
-          text: 'Leif Taylor',
+          text: m.name,
           bold: true,
           size: SZ_NAME,
           font: FONT_HEADING,
@@ -204,7 +213,7 @@ function buildHeader(): Paragraph[] {
       spacing: { after: 100 },
       children: [
         new TextRun({
-          text: 'AI-NATIVE PRINCIPAL ENGINEER · PRODUCT-TO-PRODUCTION ARCHITECT',
+          text: m.titleStack.toUpperCase(),
           bold: true,
           size: SZ_EYEBROW,
           font: FONT_HEADING,
@@ -216,7 +225,7 @@ function buildHeader(): Paragraph[] {
     new Paragraph({
       spacing: { after: 200 },
       children: [
-        new TextRun({ text: 'Greater Boston Area  ·  ', size: SZ_BODY_SMALL, font: FONT_BODY, color: COLOR_INK }),
+        new TextRun({ text: `${m.location}  ·  `, size: SZ_BODY_SMALL, font: FONT_BODY, color: COLOR_INK }),
         new ExternalHyperlink({
           link: `mailto:${m.email}`,
           children: [
@@ -234,7 +243,7 @@ function buildHeader(): Paragraph[] {
           link: m.linkedin,
           children: [
             new TextRun({
-              text: 'linkedin.com/in/leiftaylor',
+              text: linkedinLabel(m.linkedin),
               size: SZ_BODY_SMALL,
               font: FONT_BODY,
               color: COLOR_ACCENT,
@@ -247,7 +256,7 @@ function buildHeader(): Paragraph[] {
           link: m.siteUrl,
           children: [
             new TextRun({
-              text: 'resume.lalalimited.com',
+              text: siteHostLabel(m.siteUrl),
               size: SZ_BODY_SMALL,
               font: FONT_BODY,
               color: COLOR_ACCENT,
@@ -260,15 +269,13 @@ function buildHeader(): Paragraph[] {
   ];
 }
 
-// ─── Thesis ──────────────────────────────────────────────────
-
-function buildThesis(): Paragraph[] {
+function buildThesis(resume: Resume): Paragraph[] {
   return [
     new Paragraph({
       spacing: { before: 120, after: 220, line: 320 },
       children: [
         new TextRun({
-          text: RESUME.hero.tagline,
+          text: resume.hero.tagline,
           italics: true,
           size: SZ_THESIS,
           font: FONT_BODY,
@@ -279,58 +286,32 @@ function buildThesis(): Paragraph[] {
   ];
 }
 
-// ─── How I Work ──────────────────────────────────────────────
-
-function buildHowIWork(): Paragraph[] {
-  const out: Paragraph[] = [sectionHead('How I Work')];
-  for (const para of RESUME.operatingModel.paragraphs) {
+function buildHowIWork(resume: Resume): Paragraph[] {
+  const out: Paragraph[] = [sectionHead(titleCaseLabel(resume.sections.operatingModel.label))];
+  for (const para of resume.operatingModel.paragraphs) {
     out.push(body(para));
   }
   return out;
 }
 
-// ─── Outcomes ────────────────────────────────────────────────
-
-function buildOutcomes(): Paragraph[] {
-  const out: Paragraph[] = [sectionHead('Outcomes')];
-  for (const o of RESUME.impact) {
+function buildOutcomes(resume: Resume): Paragraph[] {
+  const out: Paragraph[] = [sectionHead(resume.sections.impact.label)];
+  for (const o of resume.impact) {
     out.push(leadIn(o.value, o.label));
   }
   return out;
 }
 
-// ─── Experience ──────────────────────────────────────────────
-
-interface ExpEntry {
-  range: string;
-  cards: Array<{
-    company: string;
-    role: string;
-    badge?: string;
-    dates?: string;
-    promotedFrom?: string;
-    bullets?: string[];
-    description?: string;
-    tags?: string[];
-    link?: { href: string; label: string };
-  }>;
-}
-
-function isPrimaryEmployment(e: ExpEntry): boolean {
-  return !!e.cards[0]?.bullets;
-}
-
-function buildExperience(): Paragraph[] {
-  const out: Paragraph[] = [sectionHead('Experience')];
-  const primary = (RESUME.experience as ExpEntry[]).filter(isPrimaryEmployment);
+function buildExperience(resume: Resume): Paragraph[] {
+  const out: Paragraph[] = [sectionHead(resume.sections.experience.label)];
+  const primary = resume.experience.filter(isPrimaryEmployment);
 
   for (const entry of primary) {
     const firstCard = entry.cards[0];
-    out.push(companyDateLine(firstCard.company, entry.range));
+    out.push(companyDateLine(firstCard.company, entry.pdfRange ?? entry.range));
 
     for (let i = 0; i < entry.cards.length; i++) {
       const card = entry.cards[i];
-      // Connector for promoted-into card (idx > 0)
       if (i > 0 && card.promotedFrom) {
         out.push(
           new Paragraph({
@@ -362,15 +343,12 @@ function buildExperience(): Paragraph[] {
       }
     }
   }
-
   return out;
 }
 
-// ─── Consulting & Fractional ─────────────────────────────────
-
-function buildConsulting(): Paragraph[] {
-  const out: Paragraph[] = [sectionHead('Consulting & Fractional')];
-  const consulting = (RESUME.experience as ExpEntry[]).filter((e) => !isPrimaryEmployment(e));
+function buildConsulting(resume: Resume, ui: UI): Paragraph[] {
+  const out: Paragraph[] = [sectionHead(ui.print.consultingHeading)];
+  const consulting = resume.experience.filter((e) => !isPrimaryEmployment(e));
 
   for (const entry of consulting) {
     const card = entry.cards[0];
@@ -400,15 +378,12 @@ function buildConsulting(): Paragraph[] {
       );
     }
   }
-
   return out;
 }
 
-// ─── Toolkit ────────────────────────────────────────────────
-
-function buildToolkit(): Paragraph[] {
-  const out: Paragraph[] = [sectionHead('Toolkit')];
-  for (const bucket of RESUME.tech) {
+function buildToolkit(resume: Resume): Paragraph[] {
+  const out: Paragraph[] = [sectionHead(resume.sections.tech.label)];
+  for (const bucket of resume.tech) {
     out.push(
       new Paragraph({
         spacing: { before: 160, after: 40 },
@@ -443,57 +418,96 @@ function buildToolkit(): Paragraph[] {
 
 // ─── Document assembly ──────────────────────────────────────
 
-const doc = new Document({
-  creator: 'Leif Taylor',
-  title: 'Leif Taylor — Résumé',
-  description: 'Résumé of Leif Taylor, AI-Native Principal Engineer & Product-to-Production Architect',
-  styles: {
-    default: {
-      document: {
-        run: { font: FONT_BODY, size: SZ_BODY, color: COLOR_INK },
-        paragraph: { spacing: { line: 280 } },
+function buildDocument(resume: Resume, ui: UI): Document {
+  return new Document({
+    creator: resume.meta.name,
+    title: `${resume.meta.name} — Résumé`,
+    description: `Résumé of ${resume.meta.name}, ${resume.meta.titleStack}`,
+    styles: {
+      default: {
+        document: {
+          run: { font: FONT_BODY, size: SZ_BODY, color: COLOR_INK },
+          paragraph: { spacing: { line: 280 } },
+        },
       },
     },
-  },
-  numbering: {
-    config: [
-      {
-        reference: 'resume-bullets',
-        levels: [
-          {
-            level: 0,
-            format: LevelFormat.BULLET,
-            text: '•',
-            alignment: AlignmentType.LEFT,
-            style: {
-              paragraph: { indent: { left: 360, hanging: 200 } },
-              run: { color: COLOR_ACCENT },
+    numbering: {
+      config: [
+        {
+          reference: 'resume-bullets',
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.BULLET,
+              text: '•',
+              alignment: AlignmentType.LEFT,
+              style: {
+                paragraph: { indent: { left: 360, hanging: 200 } },
+                run: { color: COLOR_ACCENT },
+              },
             },
+          ],
+        },
+      ],
+    },
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: { top: 720, bottom: 720, left: 720, right: 720 },
           },
+        },
+        children: [
+          ...buildHeader(resume),
+          ...buildThesis(resume),
+          ...buildHowIWork(resume),
+          ...buildOutcomes(resume),
+          ...buildExperience(resume),
+          ...buildConsulting(resume, ui),
+          ...buildToolkit(resume),
         ],
       },
     ],
-  },
-  sections: [
-    {
-      properties: {
-        page: {
-          margin: { top: 720, bottom: 720, left: 720, right: 720 }, // 0.5in (1in = 1440 twip)
-        },
-      },
-      children: [
-        ...buildHeader(),
-        ...buildThesis(),
-        ...buildHowIWork(),
-        ...buildOutcomes(),
-        ...buildExperience(),
-        ...buildConsulting(),
-        ...buildToolkit(),
-      ],
-    },
-  ],
-});
+  });
+}
 
-const buffer = await Packer.toBuffer(doc);
-writeFileSync(OUT, buffer);
-console.log(`✓ wrote ${OUT} (${(buffer.byteLength / 1024).toFixed(1)} KB)`);
+async function generateForSlug(slug: string | null): Promise<void> {
+  const resolved = resolveVariant(slug);
+  if (resolved === null) {
+    throw new Error(`resolveVariant returned null for ${JSON.stringify(slug)}`);
+  }
+  const out = join(ROOT, 'public', resolved.resume.meta.docxHref.replace(/^\//, ''));
+  mkdirSync(dirname(out), { recursive: true });
+  const doc = buildDocument(resolved.resume, resolved.ui);
+  const buffer = await Packer.toBuffer(doc);
+  writeFileSync(out, buffer);
+  console.log(`✓ [${slug ?? 'base'}] wrote ${out} (${(buffer.byteLength / 1024).toFixed(1)} KB)`);
+}
+
+async function main() {
+  const env = process.env.RESUME_SLUG;
+  let slugsToBuild: (string | null)[];
+  if (env === undefined) {
+    slugsToBuild = [null, ...VARIANT_SLUGS];
+  } else if (env === 'base' || env === '') {
+    slugsToBuild = [null];
+  } else {
+    if (!VARIANT_SLUGS.includes(env)) {
+      console.error(
+        `✗ RESUME_SLUG=${JSON.stringify(env)} is not a registered variant. ` +
+          `Known variants: ${VARIANT_SLUGS.join(', ') || '(none)'}.`,
+      );
+      process.exit(1);
+    }
+    slugsToBuild = [env];
+  }
+
+  for (const slug of slugsToBuild) {
+    await generateForSlug(slug);
+  }
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

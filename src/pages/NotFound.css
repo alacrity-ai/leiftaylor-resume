@@ -1,0 +1,32 @@
+.notfound {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  padding: 6rem 0 4rem;
+}
+
+.notfound__inner {
+  max-width: 56ch;
+}
+
+.notfound__eyebrow {
+  margin-bottom: 1.25rem;
+}
+
+.notfound__heading {
+  font-size: clamp(3rem, 8vw, 5rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  margin: 0 0 1.5rem;
+}
+
+.notfound__body {
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--ink-muted, #3A3F46);
+  margin: 0 0 2rem;
+}
+
+.notfound__home {
+  display: inline-flex;
+}

@@ -1,9 +1,6 @@
-import { RESUME } from '@/content/resume';
+import { useResume } from '@/content/resume-context';
 import NowLine from './NowLine';
 import './Hero.css';
-
-const m = RESUME.meta;
-const h = RESUME.hero;
 
 interface Props {
   onOpenContact: () => void;
@@ -11,6 +8,9 @@ interface Props {
 }
 
 export default function Hero({ onOpenContact, onOpenDownload }: Props) {
+  const { resume: RESUME, ui: u } = useResume();
+  const m = RESUME.meta;
+  const h = RESUME.hero;
   return (
     <section className="hero" aria-labelledby="hero-name">
       <div className="container-wide hero__grid">
@@ -46,7 +46,7 @@ export default function Hero({ onOpenContact, onOpenDownload }: Props) {
             style={{ ['--stagger-delay' as string]: '340ms' }}
           >
             <button type="button" className="btn btn-primary" onClick={onOpenContact}>
-              Email Leif
+              {u.cta.emailLeif}
             </button>
             <a
               className="btn"
@@ -54,13 +54,13 @@ export default function Hero({ onOpenContact, onOpenDownload }: Props) {
               target="_blank"
               rel="noreferrer"
             >
-              Schedule 30 min
+              {u.cta.scheduleCall}
             </a>
             <button type="button" className="btn" onClick={onOpenDownload}>
-              Download résumé
+              {u.cta.downloadResume}
             </button>
             <a className="btn btn-ghost" href={m.linkedin} target="_blank" rel="noreferrer">
-              LinkedIn <span aria-hidden="true">→</span>
+              {u.cta.linkedin} <span aria-hidden="true">{u.cta.linkedinArrow}</span>
             </a>
           </div>
 
@@ -72,9 +72,9 @@ export default function Hero({ onOpenContact, onOpenDownload }: Props) {
         <aside
           className="hero__glance stagger"
           style={{ ['--stagger-delay' as string]: '520ms' }}
-          aria-label="At a glance"
+          aria-label={u.hero.atAGlance}
         >
-          <p className="mono-meta">At a Glance</p>
+          <p className="mono-meta">{u.hero.atAGlance}</p>
           <dl className="hero__glance-list">
             {h.glance.map((g) => (
               <div className="hero__glance-row" key={g.label}>

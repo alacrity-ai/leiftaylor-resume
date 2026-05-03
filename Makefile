@@ -1,4 +1,5 @@
-.PHONY: help install dev preview build prerender resume-pdf resume-docx resumes typecheck lint clean \
+.PHONY: help install dev preview build prerender resume-pdf resume-docx resumes resumes-all \
+        resume-pdf-slug resume-docx-slug typecheck lint clean \
         deploy deploy-dev smoke logs
 
 # ── Wrangler authentication ────────────────────────────────
@@ -39,23 +40,35 @@ build: ## Full production build (og + vite + prerender + sitemap)
 prerender: ## Re-run prerender against an existing dist/ (skips og-image)
 	npm run build:fast
 
-resume-pdf: ## Regenerate public/leif-taylor-resume-2026-05.pdf via Puppeteer (full build first)
+resume-pdf: ## Regenerate the GLOBAL PDF only (full build first)
 	npm run resume-pdf
 	@echo "  → public/leif-taylor-resume-2026-05.pdf updated"
-	@echo "  → run 'make deploy' to publish"
 
-resume-docx: ## Regenerate public/leif-taylor-resume-2026-05.docx from RESUME data (no build needed)
+resume-docx: ## Regenerate the GLOBAL DOCX only
 	npm run resume-docx
 	@echo "  → public/leif-taylor-resume-2026-05.docx updated"
-	@echo "  → run 'make deploy' to publish"
 
-resumes: ## Regenerate both PDF and DOCX
+resumes: ## Regenerate the global PDF + DOCX (existing single-variant workflow)
 	npm run resumes
-	@echo "  → both résumé files updated; run 'make deploy' to publish"
+	@echo "  → both global résumé files updated"
+
+resumes-all: ## Regenerate every variant's PDF + DOCX, plus the global
+	npm run resumes-all
+	@echo "  → all résumé artifacts (global + every variant) updated"
+
+resume-pdf-slug: ## Regenerate ONE variant's PDF — usage: make resume-pdf-slug SLUG=anthropic
+	@if [ -z "$(SLUG)" ]; then echo "✗ SLUG=<slug> required"; exit 1; fi
+	RESUME_SLUG=$(SLUG) npm run resume-pdf-slug
+	@echo "  → variant '$(SLUG)' PDF updated"
+
+resume-docx-slug: ## Regenerate ONE variant's DOCX — usage: make resume-docx-slug SLUG=anthropic
+	@if [ -z "$(SLUG)" ]; then echo "✗ SLUG=<slug> required"; exit 1; fi
+	RESUME_SLUG=$(SLUG) npm run resume-docx-slug
+	@echo "  → variant '$(SLUG)' DOCX updated"
 
 # ── Quality ────────────────────────────────────────────────
 
-typecheck: ## tsc --noEmit
+typecheck: ## tsc -b — typechecks all referenced projects (catches variant override typos)
 	npm run typecheck
 
 lint: ## ESLint with --max-warnings 0

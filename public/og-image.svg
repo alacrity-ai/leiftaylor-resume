@@ -10,22 +10,22 @@
   <!-- Faint architect grid -->
   <rect width="1200" height="630" fill="url(#grid)" opacity="0.55"/>
 
-  <!-- Mono eyebrow -->
-  <text x="80" y="140" font-family="'JetBrains Mono', SFMono-Regular, Consolas, monospace" font-size="20" font-weight="600" letter-spacing="5" fill="#7A1F2B">AI-NATIVE PRINCIPAL ENGINEER  ·  PRODUCT-TO-PRODUCTION ARCHITECT</text>
+  <!-- Mono eyebrow ({{EYEBROW}} = titleStack uppercased) -->
+  <text x="80" y="140" font-family="'JetBrains Mono', SFMono-Regular, Consolas, monospace" font-size="20" font-weight="600" letter-spacing="5" fill="#7A1F2B">{{EYEBROW}}</text>
 
-  <!-- Display name in Fraunces (browser fallback to Iowan/Georgia at render time) -->
-  <text x="80" y="290" font-family="Fraunces, 'Iowan Old Style', Georgia, serif" font-size="148" font-weight="500" letter-spacing="-7" fill="#14171A">Leif Taylor</text>
+  <!-- Display name -->
+  <text x="80" y="290" font-family="Fraunces, 'Iowan Old Style', Georgia, serif" font-size="148" font-weight="500" letter-spacing="-7" fill="#14171A">{{NAME}}</text>
 
-  <!-- Tagline -->
-  <text x="80" y="380" font-family="Fraunces, 'Iowan Old Style', Georgia, serif" font-size="38" font-weight="500" fill="#3A3F46">Ambiguous business requirements →</text>
-  <text x="80" y="430" font-family="Fraunces, 'Iowan Old Style', Georgia, serif" font-size="38" font-weight="500" fill="#3A3F46">production systems, at agentic speed.</text>
+  <!-- Tagline (two hand-typeset lines) -->
+  <text x="80" y="380" font-family="Fraunces, 'Iowan Old Style', Georgia, serif" font-size="38" font-weight="500" fill="#3A3F46">{{TAGLINE_1}}</text>
+  <text x="80" y="430" font-family="Fraunces, 'Iowan Old Style', Georgia, serif" font-size="38" font-weight="500" fill="#3A3F46">{{TAGLINE_2}}</text>
 
   <!-- Oxblood rule -->
   <line x1="80" y1="500" x2="220" y2="500" stroke="#7A1F2B" stroke-width="3"/>
 
-  <!-- Mono footer with site URL -->
-  <text x="80" y="550" font-family="'JetBrains Mono', SFMono-Regular, Consolas, monospace" font-size="20" font-weight="500" letter-spacing="2" fill="#6A6F77">RESUME.LALALIMITED.COM  ·  REVIEWED 2026·05·02</text>
+  <!-- Mono footer ({{FOOTER}} = SITE.HOST · REVIEWED YYYY·MM·DD or FOR <COMPANY> · REVIEWED ...) -->
+  <text x="80" y="550" font-family="'JetBrains Mono', SFMono-Regular, Consolas, monospace" font-size="20" font-weight="500" letter-spacing="2" fill="#6A6F77">{{FOOTER}}</text>
 
-  <!-- Subtle "L" monogram top-right, oxblood, low opacity -->
+  <!-- Subtle "L" monogram top-right -->
   <text x="1095" y="180" font-family="Fraunces, 'Iowan Old Style', Georgia, serif" font-size="220" font-weight="600" fill="#7A1F2B" opacity="0.18">L</text>
 </svg>

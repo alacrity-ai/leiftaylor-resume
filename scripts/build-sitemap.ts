@@ -1,12 +1,14 @@
 /**
- * Writes dist/sitemap.xml. The site is a single page; sitemap is one URL plus
- * the PDF. Keep it explicit so search engines have no excuse to miss either.
+ * Writes dist/sitemap.xml. Only the global home + global PDF/DOCX are
+ * listed — variants are dispatch URLs (see DATA_DRIVEN_APPROACH.md §6)
+ * and intentionally excluded.
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { RESUME } from '../src/content/resume';
+import { VARIANT_SLUGS } from '../src/content/variants';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIST = join(__dirname, '..', 'dist');
@@ -16,6 +18,19 @@ const entries = [
   { loc: `${RESUME.meta.siteUrl}/`,                                   lastmod: TODAY,                     changefreq: 'monthly', priority: '1.0' },
   { loc: `${RESUME.meta.siteUrl}${RESUME.meta.pdfHref}`,              lastmod: RESUME.meta.lastReviewed,  changefreq: 'yearly',  priority: '0.5' },
 ];
+
+// Defensive — if a future change accidentally added variants to the
+// sitemap, fail the build rather than ship a leak.
+for (const e of entries) {
+  for (const slug of VARIANT_SLUGS) {
+    if (e.loc.includes(`/${slug}/`) || e.loc.endsWith(`/${slug}`)) {
+      throw new Error(
+        `sitemap entry ${JSON.stringify(e.loc)} references variant slug ${JSON.stringify(slug)}. ` +
+          'Variants must not appear in sitemap.xml — they are dispatch URLs.',
+      );
+    }
+  }
+}
 
 const xml = [
   '<?xml version="1.0" encoding="UTF-8"?>',

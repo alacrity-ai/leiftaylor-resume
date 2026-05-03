@@ -1,26 +1,76 @@
 /**
- * Generates the PDF résumé from the prerendered /print/resume route.
+ * Generates the PDF résumé(s) from the prerendered print routes. Loops
+ * over `[null, ...VARIANT_SLUGS]` so each registered variant gets its
+ * own PDF emitted to `public/<slug>/leif-taylor-resume-<slug>-...pdf`.
  *
  * Pipeline:
- *   1. Confirm dist/print/resume/index.html exists (npm run build first).
+ *   1. Confirm dist/ has the expected prerendered routes.
  *   2. Boot a tiny in-process static server pointing at dist/.
- *   3. Launch Puppeteer, navigate to the print route.
- *   4. Wait for fonts (document.fonts.ready) + small safety pad.
- *   5. Sanity-check the rendered DOM for required ATS keywords.
- *   6. page.pdf() to public/leif-taylor-resume-2026-05.pdf.
- *   7. Tear down server + browser.
+ *   3. Launch Puppeteer ONCE — re-used across slugs.
+ *   4. For each slug: navigate, wait for fonts, sanity-check ATS keywords
+ *      from the variant's resolved RESUME, render PDF.
+ *   5. Tear down server + browser.
+ *
+ * Single-variant mode: set `RESUME_SLUG=<slug>` to render only that one
+ * (used by `make resume-pdf-slug SLUG=...`). Setting `RESUME_SLUG=base`
+ * renders only the global. Otherwise all of `[null, ...VARIANT_SLUGS]`.
  */
 import { createServer, type Server } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { join, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import puppeteer from 'puppeteer';
+import puppeteer, { type Browser } from 'puppeteer';
+
+import { resolveVariant } from '../src/content/resolve-variant';
+import { VARIANT_SLUGS } from '../src/content/variants';
+import { UI } from '../src/content/ui';
+import { titleCaseLabel } from '../src/content/content-utils';
+import type { Resume } from '../src/content/types';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const DIST = join(ROOT, 'dist');
-const OUT = join(ROOT, 'public', 'leif-taylor-resume-2026-05.pdf');
+
+/** Build the required-keyword list from a (resolved) RESUME. The check
+ *  fails if any of these are missing in the rendered PDF text. */
+function buildRequiredKeywords(resume: Resume): string[] {
+  const m = resume.meta;
+  const identity = [
+    m.name,
+    m.email,
+    m.location,
+    ...m.titleStack.split(/\s*·\s*/),
+  ];
+  const sectionHeads = [
+    titleCaseLabel(resume.sections.operatingModel.label),
+    resume.sections.impact.label,
+    resume.sections.experience.label,
+    UI.print.consultingHeading,
+    resume.sections.tech.label,
+  ];
+  const outcomeAnchors = resume.impact.map((i) => i.value);
+  const companies = Array.from(
+    new Set(resume.experience.flatMap((e) => e.cards.map((c) => c.company))),
+  );
+  const roles = Array.from(
+    new Set(resume.experience.flatMap((e) => e.cards.map((c) => c.role))),
+  );
+  return [
+    ...identity,
+    ...sectionHeads,
+    ...outcomeAnchors,
+    ...companies,
+    ...roles,
+    ...resume.atsFeaturedPills,
+  ];
+}
+
+/** Output path for a slug's PDF: variant goes under `<slug>/`. */
+function pdfOutPath(resume: Resume): string {
+  const href = resume.meta.pdfHref; // already variant-aware via resolveVariant
+  return join(ROOT, 'public', href.replace(/^\//, ''));
+}
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -64,7 +114,6 @@ function startServer(root: string): Promise<{
             target = join(full, 'index.html');
           }
         } catch {
-          // try fall through — could be a route that needs index.html
           target = join(full, 'index.html');
         }
         try {
@@ -102,13 +151,99 @@ function startServer(root: string): Promise<{
   });
 }
 
-async function main() {
-  const printIndex = join(DIST, 'print', 'resume', 'index.html');
+/** Render one slug's PDF. The browser is shared across calls. */
+async function renderPdfForSlug(
+  browser: Browser,
+  serverUrl: string,
+  slug: string | null,
+): Promise<void> {
+  const resolved = resolveVariant(slug);
+  if (resolved === null) {
+    throw new Error(`resolveVariant returned null for slug ${JSON.stringify(slug)}`);
+  }
+  const { resume } = resolved;
+  const printPath = slug ? `/${slug}/print/resume` : '/print/resume';
+  const out = pdfOutPath(resume);
+  // Ensure variant subdir exists.
+  mkdirSync(dirname(out), { recursive: true });
+
+  const printIndex = join(DIST, slug ? `${slug}/print/resume/index.html` : 'print/resume/index.html');
   if (!existsSync(printIndex)) {
-    console.error(
-      `✗ ${printIndex} missing. Run \`npm run build\` first to generate the prerendered HTML.`,
+    throw new Error(
+      `${printIndex} missing. Run \`npm run build\` first to generate the prerendered HTML.`,
     );
-    process.exit(1);
+  }
+
+  const page = await browser.newPage();
+  page.on('pageerror', (err) => console.error('  page error:', err));
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') console.error('  console error:', msg.text());
+  });
+
+  try {
+    const target = `${serverUrl}${printPath}`;
+    console.log(`  → [${slug ?? 'base'}] navigating to ${target}`);
+    await page.goto(target, { waitUntil: 'networkidle0', timeout: 60_000 });
+
+    await page.evaluate(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (globalThis as any).document.fonts.ready;
+    });
+    await new Promise((r) => setTimeout(r, 400));
+
+    const text: string = await page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (globalThis as any).document.body.textContent as string;
+    });
+    const required = buildRequiredKeywords(resume);
+    const missing = required.filter((k) => !text.includes(k));
+    if (missing.length > 0) {
+      console.error(`  ✗ [${slug ?? 'base'}] missing keywords:`, missing);
+      throw new Error(`Missing ATS keywords for slug ${slug ?? 'base'}`);
+    }
+    console.log(`  ✓ [${slug ?? 'base'}] all ${required.length} ATS keywords present`);
+
+    await page.pdf({
+      path: out,
+      format: 'Letter',
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: {
+        top: '0.5in',
+        bottom: '0.5in',
+        left: '0.55in',
+        right: '0.55in',
+      },
+      displayHeaderFooter: false,
+    });
+
+    const { size } = await stat(out);
+    console.log(`✓ wrote ${out} (${(size / 1024).toFixed(1)} KB)`);
+  } finally {
+    await page.close();
+  }
+}
+
+async function main() {
+  const baseSlug = process.env.RESUME_SLUG;
+  // Slug filter:
+  //   unset       → render all (base + variants)
+  //   "base"      → render only the base
+  //   "<slug>"    → render only that one
+  let slugsToRender: (string | null)[];
+  if (baseSlug === undefined) {
+    slugsToRender = [null, ...VARIANT_SLUGS];
+  } else if (baseSlug === 'base' || baseSlug === '') {
+    slugsToRender = [null];
+  } else {
+    if (!VARIANT_SLUGS.includes(baseSlug)) {
+      console.error(
+        `✗ RESUME_SLUG=${JSON.stringify(baseSlug)} is not a registered variant. ` +
+          `Known variants: ${VARIANT_SLUGS.join(', ') || '(none)'}.`,
+      );
+      process.exit(1);
+    }
+    slugsToRender = [baseSlug];
   }
 
   console.log('  → starting static server');
@@ -122,110 +257,9 @@ async function main() {
   });
 
   try {
-    const page = await browser.newPage();
-    page.on('pageerror', (err) => console.error('  page error:', err));
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') console.error('  console error:', msg.text());
-    });
-
-    const target = `${url}/print/resume`;
-    console.log(`  → navigating to ${target}`);
-    await page.goto(target, { waitUntil: 'networkidle0', timeout: 60_000 });
-
-    console.log('  → waiting for fonts');
-    await page.evaluate(async () => {
-      // FontFaceSet API — runs inside the browser context, so `document`
-      // resolves at runtime even though node's tsconfig has no DOM lib.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (globalThis as any).document.fonts.ready;
-    });
-    await new Promise((r) => setTimeout(r, 400));
-
-    console.log('  → ATS keyword sanity check');
-    // textContent is what real ATS parsers see — raw markup text, not the
-    // CSS-transformed rendered text. (innerText would return UPPERCASE for
-    // anything styled with text-transform: uppercase, which would make us
-    // miss most of the keywords below.)
-    const text: string = await page.evaluate(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (globalThis as any).document.body.textContent as string;
-    });
-    const required = [
-      // Identity / positioning
-      'AI-Native Principal Engineer',
-      'Product-to-Production Architect',
-      'Greater Boston Area',
-      'leif@alacrity.ai',
-      // Section heads
-      'How I Work',
-      'Outcomes',
-      'Experience',
-      'Toolkit',
-      // Roles + companies
-      'ConnectBase',
-      'Principal Engineer',
-      'Director of DevOps',
-      'Mobile Heartbeat',
-      'Actifio',
-      'Chemveric',
-      'Alacrity Solutions',
-      'Imprint.live',
-      'Open Interpreter',
-      // Outcome anchors
-      '$600K',
-      '0 → 1',
-      'CPQ',
-      'RFQ',
-      'marketplace',
-      'AI matching',
-      'AI moderation',
-      // High-value ATS keywords from the new toolkit
-      'OpenAI',
-      'Anthropic',
-      'LangChain',
-      'LangGraph',
-      'MCP',
-      'RAG',
-      'Pinecone',
-      'pgvector',
-      'NestJS',
-      'FastAPI',
-      'Spring Boot',
-      'Kubernetes',
-      'Terraform',
-      'GitHub Actions',
-      'Kafka',
-      'Snowflake',
-      'PostgreSQL',
-      'OpenTelemetry',
-      'OAuth2',
-      'OWASP',
-      'Playwright',
-    ];
-    const missing = required.filter((k) => !text.includes(k));
-    if (missing.length > 0) {
-      console.error('  ✗ missing keywords:', missing);
-      process.exit(1);
+    for (const slug of slugsToRender) {
+      await renderPdfForSlug(browser, url, slug);
     }
-    console.log(`  ✓ all ${required.length} ATS keywords present`);
-
-    console.log(`  → rendering PDF to ${OUT}`);
-    await page.pdf({
-      path: OUT,
-      format: 'Letter',
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: {
-        top: '0.5in',
-        bottom: '0.5in',
-        left: '0.55in',
-        right: '0.55in',
-      },
-      displayHeaderFooter: false,
-    });
-
-    const { size } = await stat(OUT);
-    console.log(`✓ wrote ${OUT} (${(size / 1024).toFixed(1)} KB)`);
   } finally {
     await browser.close();
     await closeServer();

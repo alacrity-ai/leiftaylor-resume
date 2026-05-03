@@ -1,8 +1,10 @@
-import { RESUME } from '@/content/resume';
+import { useResume } from '@/content/resume-context';
 import SectionIndex from './SectionIndex';
 import './ImpactStrip.css';
 
 export default function ImpactStrip() {
+  const { resume: RESUME } = useResume();
+  const s = RESUME.sections.impact;
   return (
     <section
       id="impact"
@@ -11,9 +13,9 @@ export default function ImpactStrip() {
     >
       <div className="container impact__inner">
         <div className="impact__head">
-          <SectionIndex number="02" label="Outcomes" />
+          <SectionIndex number={s.number} label={s.label} />
           <h2 id="impact-heading" className="visually-hidden">
-            Outcomes
+            {s.label}
           </h2>
         </div>
 
