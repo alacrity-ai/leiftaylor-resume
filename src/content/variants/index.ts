@@ -14,9 +14,11 @@
 import type { Variant } from '../types';
 
 // Each variant is imported and added below. Keep alphabetical.
+import { adobe } from './adobe';
 import { anthropic } from './anthropic';
 
 export const VARIANTS: readonly Variant[] = [
+  adobe,
   anthropic,
 ] as const;
 
