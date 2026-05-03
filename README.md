@@ -2,19 +2,20 @@
 
 > Live at **[resume.lalalimited.com](https://resume.lalalimited.com)**
 
-The brochure site, the typeset PDF, and the ATS-friendly Word document are all rendered from a single TypeScript file. One source of truth, three output formats, one mailbox. Built with [Claude Code](https://claude.com/claude-code) — the agentic-delivery thesis the résumé itself argues, demonstrated by the repository it lives in.
+The brochure site, the typeset PDF, the ATS-friendly Word document, and any number of per-company tailored variants are all rendered from a single TypeScript file. One source of truth, multiple output formats and dispatch URLs, one mailbox. Built with [Claude Code](https://claude.com/claude-code) — the agentic-delivery thesis the résumé itself argues, demonstrated by the repository it lives in.
 
 ---
 
 ## What this is
 
-A personal résumé site for Leif Taylor — AI-Native Principal Engineer & Product-to-Production Architect — that doubles as the canonical generator for two downstream artifacts:
+A personal résumé site for Leif Taylor — AI-Native Principal Engineer & Product-to-Production Architect — that doubles as the canonical generator for four kinds of artifact:
 
 1. **The interactive web brochure** at [resume.lalalimited.com](https://resume.lalalimited.com)
 2. **A typeset PDF résumé** rendered via Puppeteer at build time
 3. **An ATS-friendly DOCX résumé** built from the same data through the [`docx`](https://docx.js.org/) package
+4. **Per-company variant brochures + PDFs + DOCXs** at `/<slug>` (e.g. `/anthropic`, `/adobe`) — tailored copies generated from base + a small override file. See the **Variants** section below.
 
-Every string on every surface lives in one file: [`src/content/resume.ts`](./src/content/resume.ts). Edit it, run `make resumes`, run `make deploy`. The site, PDF, and DOCX update in lockstep automatically.
+Every string on every surface lives in one file: [`src/content/resume.ts`](./src/content/resume.ts) (plus [`src/content/ui.ts`](./src/content/ui.ts) for chrome). Edit, run `make resumes` (or `make resumes-all` if you have variants), run `make deploy`. Every surface — global, every variant, every format — updates in lockstep automatically.
 
 ---
 
@@ -61,7 +62,11 @@ For **per-company tailoring** (a tailored brochure URL like `/anthropic`), see t
 
 ## Variants — per-company tailored brochures
 
-The repo supports **dispatch URLs**: tailored versions of the résumé living at `resume.lalalimited.com/<slug>` (e.g., `/anthropic`). Each variant is a small TypeScript file that overrides only the fields that need retuning — hero copy, outcome ordering, optional "hello card" addressed to the company. Career history and the rest fall through from base.
+The repo supports **dispatch URLs**: tailored versions of the résumé living at `resume.lalalimited.com/<slug>` (e.g., `/anthropic`, `/adobe`). Each variant is a small TypeScript file that overrides only the fields that need retuning — hero copy, outcome ordering, optional "hello card" addressed to the company, optional toolkit additions for the company's specific tech surface. Career history and the rest fall through from base.
+
+Live examples in the repo serve as reference patterns:
+- [`src/content/variants/anthropic.ts`](./src/content/variants/anthropic.ts) — Forward-Deployed Engineer framing, hero retune, impact reorder, no toolkit changes
+- [`src/content/variants/adobe.ts`](./src/content/variants/adobe.ts) — Customer-Embedded framing, new variant-only impact item, two variant-only toolkit buckets (`Generative AI / Image`, `Forward-Deployed / Customer Engineering`)
 
 **Adding a new variant** takes 15–30 minutes:
 
@@ -77,9 +82,29 @@ make resumes-all   # regenerate every variant's PDF + DOCX
 make deploy
 ```
 
-**What you can override:** anything in `RESUME` except `experience` and `background` (career history is fact, not pitch). Arrays (impact, tech, etc.) are replaced wholesale; nested objects merge by key. TypeScript catches typo'd field names at compile time.
+**What you can override:** anything in `RESUME` except `experience` and `background` (career history is fact, not pitch). Arrays (impact, tech, etc.) are replaced wholesale; nested objects merge by key. TypeScript catches typo'd field names at compile time (run `npm run typecheck` or `make typecheck` to verify).
 
-**The dispatch model:** variant URLs are not advertised. They get `<meta robots noindex,nofollow>` injected automatically, an auto-generated `Disallow:` line in `robots.txt`, and they're excluded from `sitemap.xml`. The recruiter you sent the link to is the only one who'll find it.
+**Adding variant-only toolkit buckets** — instead of duplicating all 6 base buckets in your override, spread from `RESUME.tech` and insert your new buckets where you want them:
+
+```ts
+import { RESUME } from '../resume';
+
+export const microsoft: Variant = {
+  slug: 'microsoft',
+  company: 'Microsoft',
+  resume: {
+    tech: [
+      RESUME.tech[0],                              // AI / LLM Systems (base, unchanged)
+      { label: 'Azure GenAI Stack', pills: [...] }, // variant-only bucket
+      ...RESUME.tech.slice(1),                     // remaining base buckets, unchanged
+    ],
+  },
+};
+```
+
+This keeps the variant file small and ensures any future updates to base toolkit pills automatically propagate to the variant.
+
+**The dispatch model:** variant URLs are not advertised. They get `<meta robots noindex,nofollow>` injected automatically, an auto-generated `Disallow:` line in `robots.txt`, and they're excluded from `sitemap.xml`. Each variant ships with its own OG image (with `FOR <COMPANY>` in the footer), its own canonical URL, its own per-variant PDF and DOCX filenames (e.g., `/anthropic/leif-taylor-resume-anthropic-2026-05.pdf`). The recruiter you sent the link to is the only one who'll find it.
 
 **Build commands:**
 
@@ -91,6 +116,8 @@ make resumes                                    # global only (existing flow)
 ```
 
 **Retiring a variant:** set `archived: true` in the variant file. The slug 404s and stops emitting artifacts. The file stays in the repo as a record.
+
+**A note on PDF page-fit:** every variant should fit in 3 pages to stay ATS-friendly. If a variant adds toolkit buckets and the PDF spills to a 4th page, trim the longer specialty pills from the base buckets (`Data / Distributed Systems` and `Reliability / Security / Quality` have historically been the trim targets). Page count is visible in `file public/<slug>/leif-taylor-resume-<slug>-2026-05.pdf` after `make resumes-all`.
 
 ---
 
@@ -188,11 +215,25 @@ A few things in this repo that are worth a closer look:
 
 `src/content/resume.ts` exports a typed `RESUME` object that's the canonical content for every surface. Every component reads it via `useResume()`; the PDF and DOCX builders read it via `resolveVariant()`. There is no parallel content file for the PDF, DOCX, or any variant — diverging the formats is *prevented by construction*, not by discipline.
 
-Per-company variants live in `src/content/variants/<slug>.ts` and override only the fields that differ. A resolver (`src/content/resolve-variant.ts`) deep-merges each variant onto the base at render time, and `<slug>` flows through React Router so the same components render the variant's data without knowing the slug exists.
+Per-company variants live in `src/content/variants/<slug>.ts` and override only the fields that differ. A resolver (`src/content/resolve-variant.ts`) deep-merges each variant onto the base at render time, and `<slug>` flows through React Router so the same components render the variant's data without knowing the slug exists. Build scripts (`prerender.ts`, `generate-pdf.ts`, `generate-docx.ts`, `build-og-image.ts`, `build-robots.ts`) all loop over `[null, ...VARIANT_SLUGS]` so adding a variant is a content edit, not a build-system edit — register the file and `make resumes-all` does the rest.
+
+### Variant-only sections — adding without duplicating
+
+Variants override arrays "wholesale" (the merge model is intentionally simple — no per-element diffing). To add a new toolkit bucket without rewriting the other 6 base buckets, the variant imports `RESUME` and spreads from it:
+
+```ts
+tech: [
+  RESUME.tech[0],                              // base bucket #1 unchanged
+  { label: 'My Variant Bucket', pills: [...] }, // new
+  ...RESUME.tech.slice(1),                     // remaining base buckets unchanged
+],
+```
+
+Future updates to the base buckets propagate automatically. The same pattern works for `impact` if a variant wants to surface a new outcome alongside the base ones — though more often, variants reorder the existing 9 outcomes rather than add new ones.
 
 ### Prerendering
 
-Both the home route (`/`) and the print route (`/print/resume`) are server-rendered to static HTML at build time. The home page hydrates client-side after load; the print page is captured by Puppeteer before any JS would run. The print route also injects a `noindex` meta tag and is `Disallow:`d in `robots.txt` so it doesn't show up in search.
+Every route — `/`, `/print/resume`, `/<slug>`, `/<slug>/print/resume` — is server-rendered to static HTML at build time, with per-route head metadata (title, description, canonical, OG, Twitter) substituted from the resolved `RESUME.meta` for that slug. The home pages hydrate client-side after load; the print pages are captured by Puppeteer before any JS would run. Variant routes also inject a `noindex,nofollow` meta tag, and the print routes are `Disallow:`d in `robots.txt` so neither shows up in search.
 
 ### PDF determinism
 
