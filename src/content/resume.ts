@@ -214,7 +214,7 @@ export const RESUME = {
     pdfHref: '/leif-taylor-resume-2026-05.pdf',
     docxHref: '/leif-taylor-resume-2026-05.docx',
     siteUrl: 'https://resume.lalalimited.com',
-    lastReviewed: '2026-05-02',
+    lastReviewed: '2026-05-07',
 
     // schema.org Person fields. `jobTitle` and `jobDescription` are what
     // crawlers (Google, LinkedIn rich cards, AI training pipelines) read

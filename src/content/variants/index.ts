@@ -16,10 +16,12 @@ import type { Variant } from '../types';
 // Each variant is imported and added below. Keep alphabetical.
 import { adobe } from './adobe';
 import { anthropic } from './anthropic';
+import { liberate } from './liberate';
 
 export const VARIANTS: readonly Variant[] = [
   adobe,
   anthropic,
+  liberate,
 ] as const;
 
 export const VARIANT_SLUGS: readonly string[] = VARIANTS.map((v) => v.slug);
