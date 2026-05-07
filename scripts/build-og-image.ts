@@ -45,12 +45,17 @@ function svgForSlug(template: string, resume: Resume, company: string | null): s
     ? `FOR ${company.toUpperCase()}  ·  ${reviewed}`
     : `${siteHostLabel(m.siteUrl).toUpperCase()}  ·  ${reviewed}`;
 
+  // `replaceAll` (not `replace`) — the SVG template documents tokens in
+  // HTML comments next to the `<text>` nodes that consume them
+  // (e.g. `<!-- Mono eyebrow ({{EYEBROW}} = ...) -->`). With single
+  // `replace` only the first occurrence (the comment) is substituted,
+  // leaving the visible `<text>` rendered as the literal token.
   return template
-    .replace('{{EYEBROW}}', xmlEscape(eyebrow))
-    .replace('{{NAME}}', xmlEscape(m.name))
-    .replace('{{TAGLINE_1}}', xmlEscape(tagline1))
-    .replace('{{TAGLINE_2}}', xmlEscape(tagline2))
-    .replace('{{FOOTER}}', xmlEscape(footer));
+    .replaceAll('{{EYEBROW}}', xmlEscape(eyebrow))
+    .replaceAll('{{NAME}}', xmlEscape(m.name))
+    .replaceAll('{{TAGLINE_1}}', xmlEscape(tagline1))
+    .replaceAll('{{TAGLINE_2}}', xmlEscape(tagline2))
+    .replaceAll('{{FOOTER}}', xmlEscape(footer));
 }
 
 /** Output PNG path: global → public/og-image.png; variant → public/<slug>/og-image.png. */
